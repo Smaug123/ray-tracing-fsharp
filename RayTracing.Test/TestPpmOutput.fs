@@ -1,4 +1,4 @@
-﻿namespace TestRayTracing
+﻿namespace RayTracing.Test
 
 open RayTracing
 open NUnit.Framework

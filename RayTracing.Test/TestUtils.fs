@@ -1,7 +1,9 @@
-namespace TestRayTracing
+namespace RayTracing.Test
 
+open RayTracing
 open System.IO
 open System.Reflection
+open FsCheck
 
 [<RequireQualifiedAccess>]
 module TestUtils =
@@ -18,3 +20,11 @@ module TestUtils =
 
         use reader = new StreamReader (stream)
         reader.ReadToEnd().Replace("\r\n", "\n")
+
+    let rationalGen : Gen<Rational> =
+        gen {
+            let! i = Gen.choose (-100, 100)
+            let! sign = Gen.choose (0, 1)
+            let! j = Gen.choose (1, 100)
+            return Rational.Make i (if sign = 0 then j else -j)
+        }

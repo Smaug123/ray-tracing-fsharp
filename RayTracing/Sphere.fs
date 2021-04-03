@@ -1,10 +1,6 @@
 namespace RayTracing
 
-type Sphere<'a> =
-    {
-        Centre : Point<'a>
-        Radius : 'a
-    }
+type Sphere<'a> = { Centre : Point<'a>; Radius : 'a }
 
 [<RequireQualifiedAccess>]
 module Sphere =
@@ -19,18 +15,27 @@ module Sphere =
         //       + Point.normSquared (ray.Origin - sphere.Centre) - sphere.Radius^2
         //     = 0
         // That is:
-        let difference = Point.difference num ray.Origin sphere.Centre
+        let difference =
+            Point.difference num ray.Origin sphere.Centre
+
         let a = Point.normSquared num ray.Vector
-        let b = num.Double (Vector.dot num ray.Vector difference)
-        let c = num.Subtract (Point.normSquared num difference) (num.Times sphere.Radius sphere.Radius)
-        let discriminant = num.Subtract (num.Times b b) (num.Double (num.Double (num.Times a c)))
+
+        let b =
+            num.Double (Vector.dot num ray.Vector difference)
+
+        let c =
+            num.Subtract (Point.normSquared num difference) (num.Times sphere.Radius sphere.Radius)
+
+        let discriminant =
+            num.Subtract (num.Times b b) (num.Double (num.Double (num.Times a c)))
+
         match num.Compare discriminant num.Zero with
         | Comparison.Equal ->
             [
-                // One answer
+            // One answer
             ]
         | Comparison.Less -> []
         | Comparison.Greater ->
             [
-                // Two answers
+            // Two answers
             ]

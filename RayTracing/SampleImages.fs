@@ -13,10 +13,13 @@ module SampleImages =
 
         256.0<progress>,
         async {
-            return Array.init 256 (fun height ->
-                let output = Array.init 256 (pixelAt height)
-                progressIncrement 1.0<progress>
-                output
-            )
-            |> Image
+            return
+                Array.init
+                    256
+                    (fun height ->
+                        let output = Array.init 256 (pixelAt height)
+                        progressIncrement 1.0<progress>
+                        output
+                    )
+                |> Image
         }

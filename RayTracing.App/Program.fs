@@ -7,10 +7,12 @@ open Spectre.Console
 module Program =
 
     type ProgressTask with
+
         member this.Increment (prog : float<progress>) = this.Increment (prog / 1.0<progress>)
 
     let go (ctx : ProgressContext) =
-        let fs = FileSystem()
+        let fs = FileSystem ()
+
         let output =
             fs.Path.GetTempFileName ()
             |> fun s -> fs.Path.ChangeExtension (s, ".ppm")
@@ -23,7 +25,10 @@ module Program =
         let image = image |> Async.RunSynchronously
 
         let outputTask = ctx.AddTask "[green]Writing image[/]"
-        let maxProgress, writer = ImageOutput.toPpm outputTask.Increment image output
+
+        let maxProgress, writer =
+            ImageOutput.toPpm outputTask.Increment image output
+
         outputTask.MaxValue <- maxProgress / 1.0<progress>
 
         writer |> Async.RunSynchronously
@@ -33,14 +38,16 @@ module Program =
     [<EntryPoint>]
     let main (_ : string []) : int =
         let prog =
-            AnsiConsole.Progress()
-                .Columns(
-                    TaskDescriptionColumn(),
-                    ProgressBarColumn(),
-                    PercentageColumn(),
-                    RemainingTimeColumn(),
-                    SpinnerColumn()
+            AnsiConsole
+                .Progress()
+                .Columns (
+                    TaskDescriptionColumn (),
+                    ProgressBarColumn (),
+                    PercentageColumn (),
+                    RemainingTimeColumn (),
+                    SpinnerColumn ()
                 )
+
         prog.HideCompleted <- false
         prog.AutoClear <- false
 

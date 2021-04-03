@@ -1,7 +1,7 @@
 namespace RayTracing
 
 /// An n-dimensional point.
-type Point<'a> = | Point of 'a array
+type Point<'a> = Point of 'a array
 
 [<RequireQualifiedAccess>]
 module Point =

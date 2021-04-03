@@ -12,6 +12,7 @@ module TestRational =
         let property (i : int) (j : int) : bool =
             let i1 = Rational.ofInt i
             let j1 = Rational.ofInt j
+
             if i1 < j1 then i < j
             elif i1 > j1 then i > j
             else i = j

@@ -11,16 +11,13 @@ type Pixel =
         Blue : byte
     }
 
-type Image =
-    | Image of Pixel [] []
+type Image = Image of Pixel [] []
 
 [<RequireQualifiedAccess>]
 module Image =
-    let rowCount (Image i) : int =
-        i.Length
+    let rowCount (Image i) : int = i.Length
 
-    let colCount (Image i) : int =
-        i.[0].Length
+    let colCount (Image i) : int = i.[0].Length
 
 type Ray<'a> =
     {
@@ -35,9 +32,7 @@ module Ray =
         let (Point vector) = ray.Vector
 
         Array.zip origin vector
-        |> Array.map (fun (originCoord, directionCoord) ->
-            num.Add originCoord (num.Times directionCoord magnitude)
-        )
+        |> Array.map (fun (originCoord, directionCoord) -> num.Add originCoord (num.Times directionCoord magnitude))
         |> Point
 
 [<RequireQualifiedAccess>]

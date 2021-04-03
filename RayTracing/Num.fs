@@ -13,8 +13,8 @@ type Num<'a> =
         Zero : 'a
         Compare : 'a -> 'a -> Comparison
     }
-    member this.Double (x : 'a) : 'a =
-        this.Add x x
+
+    member this.Double (x : 'a) : 'a = this.Add x x
 
 [<RequireQualifiedAccess>]
 module Num =
@@ -24,7 +24,11 @@ module Num =
             Times = (*)
             Subtract = (-)
             Zero = 0
-            Compare = fun a b -> if a < b then Comparison.Less elif a = b then Comparison.Equal else Comparison.Greater
+            Compare =
+                fun a b ->
+                    if a < b then Comparison.Less
+                    elif a = b then Comparison.Equal
+                    else Comparison.Greater
         }
 
     let float : Num<float> =
@@ -33,7 +37,11 @@ module Num =
             Times = (*)
             Subtract = (-)
             Zero = 0.0
-            Compare = fun a b -> if a < b then Comparison.Less elif a = b then Comparison.Equal else Comparison.Greater
+            Compare =
+                fun a b ->
+                    if a < b then Comparison.Less
+                    elif a = b then Comparison.Equal
+                    else Comparison.Greater
         }
 
     let rational : Num<Rational> =
@@ -42,5 +50,9 @@ module Num =
             Times = Rational.times
             Subtract = Rational.subtract
             Zero = Rational.ofInt 0
-            Compare = fun a b -> if a < b then Comparison.Less elif a = b then Comparison.Equal else Comparison.Greater
+            Compare =
+                fun a b ->
+                    if a < b then Comparison.Less
+                    elif a = b then Comparison.Equal
+                    else Comparison.Greater
         }

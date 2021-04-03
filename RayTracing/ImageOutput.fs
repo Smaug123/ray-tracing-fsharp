@@ -29,9 +29,10 @@ module ImageOutput =
             match image with
             | Image arr ->
                 for row in arr do
-                    for pixel in row do
-                        writer.Write (PixelOutput.toPpm pixel)
+                    for pixel in 0..row.Length - 2 do
+                        writer.Write (PixelOutput.toPpm row.[pixel])
                         writer.Write " "
+                    writer.Write (PixelOutput.toPpm row.[row.Length - 1])
                     writer.Write "\n"
                     progressIncrement 1.0<progress>
         }

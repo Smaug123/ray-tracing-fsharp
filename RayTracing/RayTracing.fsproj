@@ -5,7 +5,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Library.fs"/>
+        <Compile Include="Domain.fs" />
+        <Compile Include="ImageOutput.fs" />
+        <Compile Include="SampleImages.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="System.IO.Abstractions" Version="13.2.28" />
     </ItemGroup>
 
 </Project>

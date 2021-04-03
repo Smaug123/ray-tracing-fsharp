@@ -9,7 +9,9 @@
         <Compile Include="TestPpmOutput.fs" />
         <Compile Include="TestRay.fs" />
         <Compile Include="TestRational.fs" />
+        <Compile Include="TestSphereIntersection.fs" />
         <EmbeddedResource Include="PpmOutputExample.txt" />
+        <Compile Include="TestPixel.fs" />
     </ItemGroup>
 
     <ItemGroup>

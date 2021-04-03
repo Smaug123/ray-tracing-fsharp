@@ -1,10 +1,40 @@
 namespace RayTracing
 
-type Sphere<'a> = { Centre : Point<'a>; Radius : 'a }
+type Sphere<'a> =
+    {
+        Centre : Point<'a>
+        Radius : 'a
+        /// If an incoming ray has the given colour, and hits the
+        /// given point (which is guaranteed to be on the surface),
+        /// what colour ray does it output and in what direction?
+        Reflection : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> * Pixel
+    }
 
 [<RequireQualifiedAccess>]
 module Sphere =
-    let intersections<'a> (num : Num<'a>) (sphere : Sphere<'a>) (ray : Ray<'a>) : Point<'a> list =
+
+    let makePureWhite<'a> (centre : Point<'a>) (radius : 'a) : Sphere<'a> =
+        {
+            Centre = centre
+            Radius = radius
+            Reflection =
+                fun incomingRay incomingColour strikePoint ->
+                    failwith ""
+        }
+
+    let liesOn<'a> (num : Num<'a>) (point : Point<'a>) (sphere : Sphere<'a>) : bool =
+        num.Equal (Point.normSquared num (Point.difference num sphere.Centre point)) (num.Times sphere.Radius sphere.Radius)
+
+    /// Returns the intersections of this ray with this sphere.
+    /// The nearest intersection is returned first, if there are multiple.
+    /// Does not return any intersections which are behind us.
+    let intersections<'a>
+        (num : Num<'a>)
+        (sphere : Sphere<'a>)
+        (ray : Ray<'a>)
+        (incomingColour : Pixel)
+        : (Point<'a> * Ray<'a> * Pixel) array
+        =
         // The sphere is all points P such that Point.normSquared (P - sphere.Centre) = sphere.Radius^2
         // The ray is all ray.Origin + t ray.Vector for any t.
         // So the intersection is all P such that
@@ -31,11 +61,30 @@ module Sphere =
 
         match num.Compare discriminant num.Zero with
         | Comparison.Equal ->
-            [
-            // One answer
-            ]
-        | Comparison.Less -> []
+            [|
+                num.Negate (num.Divide b (num.Double a))
+            |]
+        | Comparison.Less -> [||]
         | Comparison.Greater ->
-            [
-            // Two answers
-            ]
+            let intermediate = num.Sqrt discriminant
+            let denom = num.Double a
+            [|
+                num.Divide (num.Add (num.Negate b) intermediate) denom
+                num.Divide (num.Add (num.Negate b) (num.Negate intermediate)) denom
+            |]
+        // Don't return anything that's behind us
+        |> Array.filter (fun i -> num.Compare i num.Zero = Greater)
+        |> function
+            | [||] -> [||]
+            | [|x|] -> [|x|]
+            | [|x ; y|] ->
+                match num.Compare x y with
+                | Less -> [|x ; y|]
+                | Equal -> failwith "Nooo"
+                | Greater -> [|y ; x|]
+            | _ -> failwith "Impossible"
+        |> Array.map (fun pos ->
+            let strikePoint = Ray.walkAlong num ray pos
+            let outgoing, colour = sphere.Reflection ray incomingColour strikePoint
+            strikePoint, outgoing, colour
+        )

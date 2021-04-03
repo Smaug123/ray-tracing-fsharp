@@ -10,7 +10,7 @@ module Program =
 
         member this.Increment (prog : float<progress>) = this.Increment (prog / 1.0<progress>)
 
-    let go (ctx : ProgressContext) =
+    let go (sample : SampleImages) (ctx : ProgressContext) =
         let fs = FileSystem ()
 
         let output =
@@ -19,7 +19,7 @@ module Program =
             |> fs.FileInfo.FromFileName
 
         let task = ctx.AddTask "[green]Generating image[/]"
-        let maxProgress, image = SampleImages.gradient task.Increment
+        let maxProgress, image = SampleImages.get sample task.Increment
         task.MaxValue <- maxProgress / 1.0<progress>
 
         let image = image |> Async.RunSynchronously
@@ -36,7 +36,15 @@ module Program =
         printfn "%s" output.FullName
 
     [<EntryPoint>]
-    let main (_ : string []) : int =
+    let main (argv : string []) : int =
+        let sample =
+            argv
+            |> Array.exactlyOne
+            |> function
+                | "spheres" -> SampleImages.Spheres
+                | "gradient" -> SampleImages.Gradient
+                | s -> failwithf "Unrecognised arg: %s" s
+
         let prog =
             AnsiConsole
                 .Progress()
@@ -51,5 +59,5 @@ module Program =
         prog.HideCompleted <- false
         prog.AutoClear <- false
 
-        prog.Start go
+        prog.Start (go sample)
         0

@@ -2,7 +2,6 @@ namespace RayTracing.Test
 
 open RayTracing
 open NUnit.Framework
-open FsUnitTyped
 open FsCheck
 
 [<TestFixture>]
@@ -11,11 +10,12 @@ module TestRay =
     [<Test>]
     let ``Walking along two parallel rays maintains the same vector difference`` () =
         let property
+            (num : Num<'a>)
             (
-                ((originX : Rational, originY : Rational, originZ : Rational),
-                 (origin2X : Rational, origin2Y : Rational, origin2Z : Rational),
-                 (rayX : Rational, rayY : Rational, rayZ : Rational)),
-                magnitude : Rational
+                ((originX : 'a, originY : 'a, originZ : 'a),
+                 (origin2X : 'a, origin2Y : 'a, origin2Z : 'a),
+                 (rayX : 'a, rayY : 'a, rayZ : 'a)),
+                magnitude : 'a
             )
             : bool
             =
@@ -27,22 +27,26 @@ module TestRay =
             let vector = Point [| rayX; rayY; rayZ |]
             let ray = { Origin = origin1; Vector = vector }
             let ray2 = { Origin = origin2; Vector = vector }
-            let output = Ray.walkAlong Num.rational ray magnitude
+            let output = Ray.walkAlong num ray magnitude
 
             let output2 =
-                Ray.walkAlong Num.rational ray2 magnitude
+                Ray.walkAlong num ray2 magnitude
 
             let actual =
-                Point.difference Num.rational output output2
+                Point.difference num output output2
 
             let expected =
-                Point.difference Num.rational origin1 origin2
+                Point.difference num origin1 origin2
 
-            actual = expected
+            Point.equal num actual expected
+
+        let gen : Gen<float> =
+            Arb.generate<NormalFloat>
+            |> Gen.map NormalFloat.op_Explicit
 
         let gen =
-            Gen.zip (Gen.three (Gen.three TestUtils.rationalGen)) TestUtils.rationalGen
+            Gen.zip (Gen.three (Gen.three gen)) gen
 
-        property
+        property Num.float
         |> Prop.forAll (Arb.fromGen gen)
         |> Check.QuickThrowOnFailure

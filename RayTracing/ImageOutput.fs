@@ -18,8 +18,9 @@ module ImageOutput =
         (file : IFileInfo)
         : float<progress> * Async<unit>
         =
-        (float (Image.rowCount image)) * 1.0<progress>,
+        (float (Image.rowCount image) + 1.0) * 1.0<progress>,
         async {
+            progressIncrement 1.0<progress>
             use outputStream = file.OpenWrite ()
             use writer = new StreamWriter (outputStream)
             writer.Write "P3\n"

@@ -1,5 +1,7 @@
 namespace RayTracing
 
+open System
+
 type Sphere<'a> =
     {
         Centre : Point<'a>
@@ -10,10 +12,18 @@ type Sphere<'a> =
         Reflection : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> option * Pixel
     }
 
-type SphereStyle =
-    | WhiteLightSource
-    | WhiteLightSourceAtTop
-    | PureReflection
+type SphereStyle<'a> =
+    /// An emitter of light.
+    | LightSource of Pixel
+    /// An absorbing black sphere, with a small light-emitting cap.
+    | LightSourceCap of Pixel
+    /// Perfect reflection, as you would see from a smooth flat metal surface.
+    /// Albedo must be between 0 and 1.
+    | PureReflection of albedo : 'a * colour : Pixel
+    /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
+    /// surface is the same regardless of the angle of view.
+    /// Albedo must be between 0 and 1.
+    | LambertReflection of albedo : 'a * colour : Pixel * Random
 
 [<RequireQualifiedAccess>]
 module Sphere =
@@ -24,9 +34,18 @@ module Sphere =
             Vector = Point.difference num p centre
         }
 
+    let rec randomUnitVector<'a> (num : Num<'a>) (rand : Random) (dimension : int) : Vector<'a> =
+        let vector =
+            Array.init dimension (fun _ -> num.Subtract (num.TimesInteger 2 (num.RandomBetween01 rand)) num.One)
+            |> Vector
+            |> Vector.unitise num
+        match vector with
+        | None -> randomUnitVector num rand dimension
+        | Some result -> result
+
     let reflection<'a>
         (num : Num<'a>)
-        (style : SphereStyle)
+        (style : SphereStyle<'a>)
         (centre : Point<'a>)
         (radius : 'a)
         : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> option * Pixel
@@ -36,24 +55,40 @@ module Sphere =
             let normal = normal strikePoint
 
             match style with
-            | SphereStyle.WhiteLightSource ->
-                None, Pixel.White
-            | SphereStyle.WhiteLightSourceAtTop ->
+            | SphereStyle.LightSource colour ->
+                None, colour
+            | SphereStyle.LightSourceCap colour ->
                 let circleCentreZCoord =
                     match centre with
                     | Point v -> Array.head v
-                let zCoordLowerBound = num.Add circleCentreZCoord (num.Subtract radius (num.DivideInteger radius 10))
+                let zCoordLowerBound = num.Add circleCentreZCoord (num.Subtract radius (num.DivideInteger radius 5))
                 let strikeZCoord =
                     match strikePoint with
                     | Point v -> Array.head v
                 let colour =
                     match num.Compare strikeZCoord zCoordLowerBound with
                     | Greater ->
-                        Pixel.White
+                        Pixel.combine colour incomingColour
                     | _ ->
-                        Pixel.Black
+                        Colour.Black
                 None, colour
-            | SphereStyle.PureReflection ->
+
+            | SphereStyle.LambertReflection (albedo, colour, rand) ->
+                let outgoing =
+                    {
+                        Origin = strikePoint
+                        Vector =
+                            let (Point centre) = centre
+                            let sphereCentre = Ray.walkAlong num normal num.One
+                            let offset = randomUnitVector num rand centre.Length
+                            let target = Ray.walkAlong num { Origin = sphereCentre ; Vector = offset } num.One
+                            Point.difference num target strikePoint
+                    }
+
+                let newColour = Pixel.combine incomingColour colour
+                Some outgoing, Pixel.darken num newColour albedo
+
+            | SphereStyle.PureReflection (albedo, colour) ->
                 let plane =
                     Plane.makeSpannedBy normal incomingRay
                     |> Plane.orthonormalise num
@@ -76,11 +111,12 @@ module Sphere =
                                 Ray.walkAlong num { Origin = Ray.walkAlong num { Origin = plane.Point ; Vector = plane.V1 } normalComponent ; Vector = plane.V2 } tangentComponent
                                 |> Point.difference num strikePoint
                         }
-                        //Plane.rayAtAngle num normal plane angle
 
-                Some outgoing, incomingColour
+                let newColour = Pixel.combine incomingColour colour
+                let darkened = Pixel.darken num newColour albedo
+                Some outgoing, darkened
 
-    let make<'a> (num : Num<'a>) (style : SphereStyle) (centre : Point<'a>) (radius : 'a) : Sphere<'a> =
+    let make<'a> (num : Num<'a>) (style : SphereStyle<'a>) (centre : Point<'a>) (radius : 'a) : Sphere<'a> =
         {
             Centre = centre
             Radius = radius

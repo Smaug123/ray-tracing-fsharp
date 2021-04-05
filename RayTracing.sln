@@ -31,5 +31,7 @@ Global
 		{94792D42-3D22-4FAE-A15B-B89AAF6DB732}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AE2CD8DA-FFA5-49BE-B5C9-1A96A3928325}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AE2CD8DA-FFA5-49BE-B5C9-1A96A3928325}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE2CD8DA-FFA5-49BE-B5C9-1A96A3928325}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE2CD8DA-FFA5-49BE-B5C9-1A96A3928325}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

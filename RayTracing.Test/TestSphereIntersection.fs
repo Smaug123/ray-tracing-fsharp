@@ -13,13 +13,13 @@ module TestSphereIntersection =
         gen {
             let! origin = TestUtils.pointGen
             let! radius = Arb.generate<NormalFloat>
-            return Sphere.make Num.float SphereStyle.WhiteLightSource origin radius.Get
+            return Sphere.make Num.float (SphereStyle.LightSource Colour.White) origin radius.Get
         }
 
     [<Test>]
     let ``Intersection of sphere and ray does lie on both`` () =
         let property (ray : Ray<float>, sphere : Sphere<float>) : bool =
-            let intersections = Sphere.intersections Num.float sphere ray Pixel.White
+            let intersections = Sphere.intersections Num.float sphere ray Colour.White
             intersections
             |> Seq.forall (fun (p, _, _) ->
                 let rayOk = Ray.liesOn Num.float p ray
@@ -43,9 +43,9 @@ module TestSphereIntersection =
                 Origin = Point [|1.462205539; -4.888279676; 7.123293244|]
                 Vector = Vector [|-9.549697616; 4.400018428; 10.41024923|]
             }
-        let sphere = Sphere.make Num.float SphereStyle.PureReflection (Point [|-5.688391601; -5.360125644; 9.074300761|]) 8.199747973
+        let sphere = Sphere.make Num.float (SphereStyle.PureReflection (1.0, Colour.White)) (Point [|-5.688391601; -5.360125644; 9.074300761|]) 8.199747973
 
-        let intersections = Sphere.intersections Num.float sphere ray Pixel.White
+        let intersections = Sphere.intersections Num.float sphere ray Colour.White
 
         intersections
         |> Array.map (fun (intersection, _, _) -> Vector.normSquared Num.float (Point.difference Num.float ray.Origin intersection))

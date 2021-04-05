@@ -11,7 +11,7 @@ module TestSphere =
     let ``Point at distance r from centre lies on sphere`` () =
         let property (centre : Point<float>, radius : float, point : Point<float>) : bool =
             let radius = abs radius
-            let sphere = Sphere.make Num.float SphereStyle.PureReflection centre radius
+            let sphere = Sphere.make Num.float (SphereStyle.PureReflection (1.0, Colour.White)) centre radius
             Sphere.liesOn Num.float point sphere
 
 

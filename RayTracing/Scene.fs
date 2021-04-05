@@ -47,13 +47,13 @@ module Scene =
         : Pixel
         =
         let rec go (pathSoFar : Ray<'a> list) (ray : Ray<'a>) (colour : Pixel) : Pixel =
-            if pathSoFar.Length > maxCount then Pixel.Black else
+            if pathSoFar.Length > maxCount then Colour.Black else
 
             let thingsWeHit = hitObject num scene ray colour
             match thingsWeHit with
             | [||] ->
                 // Ray goes off into the distance and is never heard from again
-                Pixel.Black
+                Colour.Black
             | arr ->
                 let _strikePoint, outgoingRay, colour = arr.[0]
                 match outgoingRay with
@@ -99,7 +99,7 @@ module Scene =
                                     |> Ray.walkAlong num toWalkUp
                                 let ray = Ray.between num camera.View.Origin endPoint
 
-                                let result = traceRay 5 num s ray Pixel.White
+                                let result = traceRay 5 num s ray Colour.White
                                 result
                             )
                             |> Pixel.average

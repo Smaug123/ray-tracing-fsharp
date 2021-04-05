@@ -29,6 +29,7 @@ type Num<'a> =
         ArcTan2 : 'a -> 'a -> 'a Radian
         Cos : 'a Radian -> 'a
         Sin : 'a Radian -> 'a
+        Round : 'a -> int
     }
 
     member this.Double (x : 'a) : 'a = this.Add x x
@@ -64,6 +65,7 @@ module Num =
             ArcTan2 = fun x -> atan2 x >> Radian
             Sin = fun (Radian r) -> sin r
             Cos = fun (Radian r) -> cos r
+            Round = fun i -> Math.Round i |> int
         }
 
     let algebraic : Num<Algebraic> =
@@ -88,6 +90,7 @@ module Num =
             ArcTan2 = fun _ -> failwith ""
             Cos = fun _ -> failwith ""
             Sin = fun _ -> failwith ""
+            Round = fun _ -> failwith ""
         }
 
     let sortInPlaceBy<'a, 'b> (num : 'a Num) (proj : 'b -> 'a) (a : 'b array) : 'b array =

@@ -85,3 +85,24 @@ module TestPixel =
             && avg.Blue = (pixels |> List.map (fun i -> float i.Blue) |> List.average |> Math.Round |> byte)
 
         Check.QuickThrowOnFailure property
+
+    [<Test>]
+    let ``Combine pixels with white`` () =
+        let property (r : byte) (g : byte) (b : byte) : bool =
+            let original = { Red = r ; Green = g ; Blue = b }
+            let combined =
+                original
+                |> Pixel.combine Colour.White
+            combined = original
+
+        Check.QuickThrowOnFailure property
+
+    [<Test>]
+    let ``Combine pixels with black`` () =
+        let property (r : byte) (g : byte) (b : byte) : bool =
+            let original = { Red = r ; Green = g ; Blue = b }
+            original
+            |> Pixel.combine Colour.Black
+            |> (=) Colour.Black
+
+        Check.QuickThrowOnFailure property

@@ -50,21 +50,27 @@ module TestUtils =
         ]
         |> Gen.oneof
 
+    let floatGen = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
+
     let pointGen =
         Gen.three Arb.generate<NormalFloat>
         |> Gen.map (fun (i, j, k) -> Point [| i.Get ; j.Get ; k.Get |])
 
+    let vectorGen =
+        Gen.three Arb.generate<NormalFloat>
+        |> Gen.map (fun (i, j, k) -> Vector [| i.Get ; j.Get ; k.Get |])
+
     let rayGen : Gen<Ray<float>> =
         gen {
             let! origin = pointGen
-            let! direction = pointGen
+            let! direction = vectorGen
             return { Origin = origin ; Vector = direction }
         }
 
     let planeGen =
         gen {
             let! origin = pointGen
-            let! v1 = pointGen
-            let! v2 = pointGen
+            let! v1 = vectorGen
+            let! v2 = vectorGen
             return Plane.makeSpannedBy { Origin = origin ; Vector = v1 } { Origin = origin ; Vector = v2 }
         }

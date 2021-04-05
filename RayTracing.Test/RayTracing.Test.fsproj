@@ -13,6 +13,7 @@
         <EmbeddedResource Include="PpmOutputExample.txt" />
         <Compile Include="TestPixel.fs" />
         <Compile Include="TestPlane.fs" />
+        <Compile Include="TestSphere.fs" />
     </ItemGroup>
 
     <ItemGroup>

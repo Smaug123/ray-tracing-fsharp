@@ -1,6 +1,7 @@
 namespace RayTracing
 
 open System
+open RayTracing
 
 [<Measure>]
 type progress
@@ -57,22 +58,36 @@ module Image =
 
 [<RequireQualifiedAccess>]
 module Vector =
-    let dot<'a> (num : Num<'a>) (p1 : Point<'a>) (p2 : Point<'a>) : 'a =
+    let dot<'a> (num : Num<'a>) (p1 : Vector<'a>) (p2 : Vector<'a>) : 'a =
         match p1, p2 with
-        | Point p1, Point p2 ->
+        | Vector p1, Vector p2 ->
             let mutable answer = num.Zero
             for i in 0..p1.Length - 1 do
                 answer <- num.Add answer (num.Times p1.[i] p2.[i])
             answer
 
-    let scale<'a> (num : Num<'a>) (scale : 'a) (vec : Point<'a>) : Point<'a> =
+    let scale<'a> (num : Num<'a>) (scale : 'a) (vec : Vector<'a>) : Vector<'a> =
         match vec with
-        | Point vec ->
+        | Vector vec ->
             vec
             |> Array.map (fun i -> num.Times scale i)
+            |> Vector
+
+    let add<'a> (num : Num<'a>) (v1 : Point<'a>) (v2 : Point<'a>) : Point<'a> =
+        match v1, v2 with
+        | Point v1, Point v2 ->
+            Array.zip v1 v2
+            |> Array.map (fun (a, b) -> num.Add a b)
             |> Point
 
-    let unitise<'a> (num : Num<'a>) (vec : Point<'a>) : Point<'a> option =
+    let difference<'a> (num : Num<'a>) (v1 : Vector<'a>) (v2 : Vector<'a>) : Vector<'a> =
+        match v1, v2 with
+        | Vector v1, Vector v2 ->
+            Array.zip v1 v2
+            |> Array.map (fun (a, b) -> num.Subtract a b)
+            |> Vector
+
+    let unitise<'a> (num : Num<'a>) (vec : Vector<'a>) : Vector<'a> option =
         let dot = dot num vec vec
         match num.Compare dot num.Zero with
         | Equal -> None
@@ -80,3 +95,12 @@ module Vector =
             let factor = dot |> num.Reciprocal |> num.Sqrt
             scale num factor vec
             |> Some
+
+    let normSquared<'a> (num : Num<'a>) (vec : Vector<'a>) : 'a =
+        dot num vec vec
+
+    let equal<'a> (num : Num<'a>) (v1 : Vector<'a>) (v2 : Vector<'a>) : bool =
+        match v1, v2 with
+        | Vector p1, Vector p2 ->
+            Array.zip p1 p2
+            |> Array.forall (fun (a, b) -> num.Equal a b)

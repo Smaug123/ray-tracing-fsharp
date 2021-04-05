@@ -35,9 +35,14 @@ type Num<'a> =
     member this.Subtract (x : 'a) (y : 'a) : 'a = this.Add x (this.Negate y)
     member this.Divide (x : 'a) (y : 'a) : 'a = this.Times x (this.Reciprocal y)
 
+    member this.Pi =
+        let (Radian t) = this.ArcCos (this.Negate this.One)
+        t
+
 [<RequireQualifiedAccess>]
 module Num =
     let float : Num<float> =
+        let tolerance = 0.00000001
         {
             Add = (+)
             Times = (*)
@@ -46,11 +51,11 @@ module Num =
             Reciprocal = fun i -> 1.0 / i
             Compare =
                 fun a b ->
-                    if a < b then Comparison.Less
-                    elif a = b then Comparison.Equal
+                    if abs (a - b) < tolerance then Comparison.Equal
+                    elif a < b then Comparison.Less
                     else Comparison.Greater
             Sqrt = sqrt
-            Equal = fun a b -> abs (a - b) < 0.00000001
+            Equal = fun a b -> abs (a - b) < tolerance
             TimesInteger = fun a b -> float a * b
             DivideInteger = fun a b -> a / float b
             One = 1.0

@@ -34,23 +34,29 @@ module Sphere =
         let normal = normal num centre
         fun incomingRay incomingColour strikePoint ->
             let normal = normal strikePoint
-            let plane =
-                Plane.makeSpannedBy normal incomingRay
-                |> Plane.orthonormalise num
 
             match style with
             | SphereStyle.WhiteLightSource ->
                 None, Pixel.White
             | SphereStyle.WhiteLightSourceAtTop ->
-                let zCoord = num.DivideInteger (num.Times radius radius) 6
+                let circleCentreZCoord =
+                    match centre with
+                    | Point v -> Array.head v
+                let zCoordLowerBound = num.Add circleCentreZCoord (num.Subtract radius (num.DivideInteger radius 10))
+                let strikeZCoord =
+                    match strikePoint with
+                    | Point v -> Array.head v
                 let colour =
-                    match num.Compare (Point.normSquared num (Point.difference num strikePoint centre)) zCoord with
+                    match num.Compare strikeZCoord zCoordLowerBound with
                     | Greater ->
                         Pixel.White
                     | _ ->
                         Pixel.Black
                 None, colour
             | SphereStyle.PureReflection ->
+                let plane =
+                    Plane.makeSpannedBy normal incomingRay
+                    |> Plane.orthonormalise num
                 let outgoing =
                     match plane with
                     | None ->
@@ -60,8 +66,17 @@ module Sphere =
                             Vector = incomingRay.Vector |> Vector.scale num (num.Negate num.One)
                         }
                     | Some plane ->
-                        let angle = Ray.angle num incomingRay normal
-                        Plane.rayAtAngle num normal plane angle
+                        // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
+                        // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
+                        let normalComponent = (Vector.dot num plane.V1 incomingRay.Vector)
+                        let tangentComponent = num.Negate (Vector.dot num plane.V2 incomingRay.Vector)
+                        {
+                            Origin = strikePoint
+                            Vector =
+                                Ray.walkAlong num { Origin = Ray.walkAlong num { Origin = plane.Point ; Vector = plane.V1 } normalComponent ; Vector = plane.V2 } tangentComponent
+                                |> Point.difference num strikePoint
+                        }
+                        //Plane.rayAtAngle num normal plane angle
 
                 Some outgoing, incomingColour
 
@@ -73,7 +88,7 @@ module Sphere =
         }
 
     let liesOn<'a> (num : Num<'a>) (point : Point<'a>) (sphere : Sphere<'a>) : bool =
-        num.Equal (Point.normSquared num (Point.difference num sphere.Centre point)) (num.Times sphere.Radius sphere.Radius)
+        num.Equal (Vector.normSquared num (Point.difference num sphere.Centre point)) (num.Times sphere.Radius sphere.Radius)
 
     /// Returns the intersections of this ray with this sphere.
     /// The nearest intersection is returned first, if there are multiple.
@@ -100,32 +115,35 @@ module Sphere =
         let difference =
             Point.difference num ray.Origin sphere.Centre
 
-        let a = Point.normSquared num ray.Vector
+        let vector = ray.Vector |> Vector.unitise num |> Option.get
+        let a = Vector.normSquared num vector
 
         let b =
-            num.Double (Vector.dot num ray.Vector difference)
+            num.Double (Vector.dot num vector difference)
 
         let c =
-            num.Subtract (Point.normSquared num difference) (num.Times sphere.Radius sphere.Radius)
+            num.Subtract (Vector.normSquared num difference) (num.Times sphere.Radius sphere.Radius)
 
         let discriminant =
             num.Subtract (num.Times b b) (num.Double (num.Double (num.Times a c)))
 
-        match num.Compare discriminant num.Zero with
-        | Comparison.Equal ->
-            [|
-                num.Negate (num.Divide b (num.Double a))
-            |]
-        | Comparison.Less -> [||]
-        | Comparison.Greater ->
-            let intermediate = num.Sqrt discriminant
-            let denom = num.Double a
-            [|
-                num.Divide (num.Add (num.Negate b) intermediate) denom
-                num.Divide (num.Add (num.Negate b) (num.Negate intermediate)) denom
-            |]
-        // Don't return anything that's behind us
-        |> Array.filter (fun i -> num.Compare i num.Zero = Greater)
+        let ts =
+            match num.Compare discriminant num.Zero with
+            | Comparison.Equal ->
+                [|
+                    num.Negate (num.Divide b (num.Double a))
+                |]
+            | Comparison.Less -> [||]
+            | Comparison.Greater ->
+                let intermediate = num.Sqrt discriminant
+                let denom = num.Double a
+                [|
+                    num.Divide (num.Add (num.Negate b) intermediate) denom
+                    num.Divide (num.Add (num.Negate b) (num.Negate intermediate)) denom
+                |]
+            // Don't return anything that's behind us
+            |> Array.filter (fun i -> num.Compare i num.Zero = Greater)
+        ts
         |> function
             | [||] -> [||]
             | [|x|] -> [|x|]

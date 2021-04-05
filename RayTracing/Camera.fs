@@ -39,17 +39,17 @@ module Camera =
         let view =
             {
                 Origin = origin
-                Vector = Point [| n.Zero ; n.Zero ; n.One |]
+                Vector = Vector [| n.Zero ; n.Zero ; n.One |]
             }
         let xAxis =
             {
                 Origin = origin
-                Vector = Point [| n.One ; n.Zero ; n.Zero |]
+                Vector = Vector [| n.One ; n.Zero ; n.Zero |]
             }
         let yAxis =
             {
                 Origin = origin
-                Vector = Point [| n.Zero ; n.One ; n.Zero |]
+                Vector = Vector [| n.Zero ; n.One ; n.Zero |]
             }
 
         {

@@ -28,7 +28,7 @@ module TestSphereIntersection =
             )
             &&
             intersections
-            |> Array.map (fun (intersection, _, _) -> Point.normSquared Num.float (Point.difference Num.float ray.Origin intersection))
+            |> Array.map (fun (intersection, _, _) -> Vector.normSquared Num.float (Point.difference Num.float ray.Origin intersection))
             |> Seq.pairwise
             |> Seq.forall (fun (i, j) -> Num.float.Compare i j = Less)
 
@@ -41,14 +41,14 @@ module TestSphereIntersection =
         let ray =
             {
                 Origin = Point [|1.462205539; -4.888279676; 7.123293244|]
-                Vector = Point [|-9.549697616; 4.400018428; 10.41024923|]
+                Vector = Vector [|-9.549697616; 4.400018428; 10.41024923|]
             }
         let sphere = Sphere.make Num.float SphereStyle.PureReflection (Point [|-5.688391601; -5.360125644; 9.074300761|]) 8.199747973
 
         let intersections = Sphere.intersections Num.float sphere ray Pixel.White
 
         intersections
-        |> Array.map (fun (intersection, _, _) -> Point.normSquared Num.float (Point.difference Num.float ray.Origin intersection))
+        |> Array.map (fun (intersection, _, _) -> Vector.normSquared Num.float (Point.difference Num.float ray.Origin intersection))
         |> Seq.pairwise
         |> Seq.forall (fun (i, j) -> Num.float.Compare i j = Less)
         |> shouldEqual true

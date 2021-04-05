@@ -24,7 +24,7 @@ module TestRay =
             let origin2 =
                 [| origin2X; origin2Y; origin2Z |] |> Point
 
-            let vector = Point [| rayX; rayY; rayZ |]
+            let vector = Vector [| rayX; rayY; rayZ |]
             let ray = { Origin = origin1; Vector = vector }
             let ray2 = { Origin = origin2; Vector = vector }
             let output = Ray.walkAlong num ray magnitude
@@ -38,7 +38,7 @@ module TestRay =
             let expected =
                 Point.difference num origin1 origin2
 
-            Point.equal num actual expected
+            Vector.equal num actual expected
 
         let gen : Gen<float> =
             Arb.generate<NormalFloat>
@@ -56,8 +56,18 @@ module TestRay =
         let property (ray : Ray<float>, distance : float) =
             let walked = Ray.walkAlong Num.float ray distance
             Point.difference Num.float walked ray.Origin
-            |> Point.normSquared Num.float
+            |> Vector.normSquared Num.float
             |> Num.float.Equal (distance * distance)
+
+        property
+        |> Prop.forAll (Arb.fromGen (Gen.zip TestUtils.rayGen (Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit)))
+        |> Check.QuickThrowOnFailure
+
+    [<Test>]
+    let ``walkAlong stays on the ray`` () =
+        let property (ray : Ray<float>, distance : float) =
+            let walked = Ray.walkAlong Num.float ray distance
+            Ray.liesOn Num.float walked ray
 
         property
         |> Prop.forAll (Arb.fromGen (Gen.zip TestUtils.rayGen (Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit)))

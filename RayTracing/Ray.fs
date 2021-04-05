@@ -3,16 +3,14 @@ namespace RayTracing
 type Ray<'a> =
     {
         Origin : Point<'a>
-        Vector : Point<'a>
+        Vector : Vector<'a>
     }
 
 [<RequireQualifiedAccess>]
 module Ray =
     let walkAlong<'a> (num : Num<'a>) (ray : Ray<'a>) (magnitude : 'a) : Point<'a> =
         let (Point origin) = ray.Origin
-        let (Point vector) = ray.Vector
-        let size = Point.normSquared num ray.Vector |> num.Sqrt
-        let magnitude = num.Divide magnitude size
+        let (Vector vector) = ray.Vector |> Vector.unitise num |> Option.get
 
         Array.zip origin vector
         |> Array.map (fun (originCoord, directionCoord) -> num.Add originCoord (num.Times directionCoord magnitude))
@@ -29,7 +27,13 @@ module Ray =
         // a.b = |a| |b| cos theta
         let v1 = walkAlong num { r1 with Origin = r2.Origin } num.One
         let v2 = walkAlong num r2 num.One
-        num.ArcCos (Vector.dot num (Point.difference num v1 r2.Origin) (Point.difference num v2 r2.Origin))
+        let (Radian answer) = num.ArcCos (Vector.dot num (Point.difference num v1 r2.Origin) (Point.difference num v2 r2.Origin))
+        match num.Compare (num.Double answer) num.Pi with
+        | Greater ->
+            num.Subtract num.Pi answer
+        | _ ->
+            answer
+        |> Radian
 
     let parallelTo<'a> (p1 : Point<'a>) (ray : Ray<'a>) : Ray<'a> =
         {
@@ -39,7 +43,7 @@ module Ray =
 
     let liesOn<'a> (num : 'a Num) (point : Point<'a>) (ray : Ray<'a>) : bool =
         match point, ray.Origin, ray.Vector with
-        | Point x, Point y, Point ray ->
+        | Point x, Point y, Vector ray ->
             let rec go (state : 'a option) (i : int) =
                 if i >= x.Length then state else
                 let d = x.[i]

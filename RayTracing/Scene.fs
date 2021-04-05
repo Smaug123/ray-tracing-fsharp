@@ -36,7 +36,7 @@ module Scene =
         =
         s.Objects
         |> Array.choose (Hittable.hits num ray colour)
-        |> Num.sortInPlaceBy num (fun (a, _, _) -> Point.normSquared num a)
+        |> Num.sortInPlaceBy num (fun (a, _, _) -> Vector.normSquared num (Point.difference num a ray.Origin))
 
     let internal traceRay<'a>
         (maxCount : int)
@@ -82,7 +82,7 @@ module Scene =
             return
                 Array.init rowsIter (fun row ->
                     let row = row - maxHeightCoord
-                    Array.init colsIter (fun col ->
+                    Array.Parallel.init colsIter (fun col ->
                         let col = col - maxWidthCoord
                         // Where does this pixel correspond to, on the imaginary canvas?
                         // For the early prototype, we'll just take the upper right quadrant

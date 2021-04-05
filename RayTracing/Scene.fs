@@ -12,7 +12,7 @@ module Hittable =
         (ray : Ray<'a>)
         (incomingColour : Pixel)
         (h : Hittable<'a>)
-        : (Point<'a> * Ray<'a> * Pixel) option
+        : (Point<'a> * Ray<'a> option * Pixel) option
         =
         match h with
         | Sphere s ->
@@ -32,10 +32,37 @@ module Scene =
         (s : Scene<'a>)
         (ray : Ray<'a>)
         (colour : Pixel)
-        : (Point<'a> * Ray<'a> * Pixel) array
+        : (Point<'a> * Ray<'a> option * Pixel) array
         =
         s.Objects
         |> Array.choose (Hittable.hits num ray colour)
+        |> Num.sortInPlaceBy num (fun (a, _, _) -> Point.normSquared num a)
+
+    let internal traceRay<'a>
+        (maxCount : int)
+        (num : Num<'a>)
+        (scene : Scene<'a>)
+        (ray : Ray<'a>)
+        (colour : Pixel)
+        : Pixel
+        =
+        let rec go (pathSoFar : Ray<'a> list) (ray : Ray<'a>) (colour : Pixel) : Pixel =
+            if pathSoFar.Length > maxCount then Pixel.Black else
+
+            let thingsWeHit = hitObject num scene ray colour
+            match thingsWeHit with
+            | [||] ->
+                // Ray goes off into the distance and is never heard from again
+                Pixel.Black
+            | arr ->
+                let _strikePoint, outgoingRay, colour = arr.[0]
+                match outgoingRay with
+                | None ->
+                    colour
+                | Some outgoingRay ->
+                    go (ray :: pathSoFar) outgoingRay colour
+
+        go [] ray colour
 
     let render<'a>
         (progressIncrement : float<progress> -> unit)
@@ -61,7 +88,7 @@ module Scene =
                         // For the early prototype, we'll just take the upper right quadrant
                         // from the camera.
                         let ret =
-                            Array.init camera.SamplesPerPixel (fun sample ->
+                            Array.init camera.SamplesPerPixel (fun _ ->
                                 // TODO make this be deterministic
                                 let pointOnXAxis =
                                     num.DivideInteger (num.Add (num.TimesInteger col camera.ViewportWidth) (num.RandomBetween01 rand)) maxWidthCoord
@@ -72,12 +99,8 @@ module Scene =
                                     |> Ray.walkAlong num toWalkUp
                                 let ray = Ray.between num camera.View.Origin endPoint
 
-                                let thingsWeHit = hitObject num s ray Pixel.White
-                                match thingsWeHit with
-                                | [||] -> { Red = 0uy ; Green = 0uy ; Blue = 0uy }
-                                | arr ->
-                                    let object = arr.[0]
-                                    { Red = 255uy ; Green = 255uy ; Blue = 255uy }
+                                let result = traceRay 5 num s ray Pixel.White
+                                result
                             )
                             |> Pixel.average
                         progressIncrement 1.0<progress>

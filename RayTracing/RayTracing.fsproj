@@ -11,6 +11,7 @@
         <Compile Include="Point.fs" />
         <Compile Include="Domain.fs" />
         <Compile Include="Ray.fs" />
+        <Compile Include="Plane.fs" />
         <Compile Include="Sphere.fs" />
         <Compile Include="ImageOutput.fs" />
         <Compile Include="Camera.fs" />

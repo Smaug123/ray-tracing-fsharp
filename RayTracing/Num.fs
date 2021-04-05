@@ -2,6 +2,9 @@ namespace RayTracing
 
 open System
 
+type 'a Radian =
+    | Radian of 'a
+
 type Comparison =
     | Greater
     | Equal
@@ -21,6 +24,11 @@ type Num<'a> =
         DivideInteger : 'a -> int -> 'a
         One : 'a
         RandomBetween01 : Random -> 'a
+        ArcCos : 'a -> 'a Radian
+        // arctan(second / first)
+        ArcTan2 : 'a -> 'a -> 'a Radian
+        Cos : 'a Radian -> 'a
+        Sin : 'a Radian -> 'a
     }
 
     member this.Double (x : 'a) : 'a = this.Add x x
@@ -47,6 +55,10 @@ module Num =
             DivideInteger = fun a b -> a / float b
             One = 1.0
             RandomBetween01 = fun rand -> float (abs (rand.Next ())) / float Int32.MaxValue
+            ArcCos = acos >> Radian
+            ArcTan2 = fun x -> atan2 x >> Radian
+            Sin = fun (Radian r) -> sin r
+            Cos = fun (Radian r) -> cos r
         }
 
     let algebraic : Num<Algebraic> =
@@ -67,4 +79,23 @@ module Num =
             DivideInteger = fun _ _ -> failwith ""
             One = Algebraic.ofInt 1
             RandomBetween01 = fun _ -> failwith ""
+            ArcCos = fun _ -> failwith ""
+            ArcTan2 = fun _ -> failwith ""
+            Cos = fun _ -> failwith ""
+            Sin = fun _ -> failwith ""
         }
+
+    let sortInPlaceBy<'a, 'b> (num : 'a Num) (proj : 'b -> 'a) (a : 'b array) : 'b array =
+        for i in 0..a.Length - 2 do
+            for j in i+1..a.Length - 1 do
+                match num.Compare (proj a.[i]) (proj a.[j]) with
+                | Greater ->
+                    let tmp = a.[j]
+                    a.[j] <- a.[i]
+                    a.[i] <- tmp
+                | _ -> ()
+        a
+
+[<RequireQualifiedAccess>]
+module Radian =
+    let add<'a> (n : Num<'a>) (Radian r1) (Radian r2) = n.Add r1 r2 |> Radian

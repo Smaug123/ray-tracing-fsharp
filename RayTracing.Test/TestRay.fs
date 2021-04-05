@@ -50,3 +50,15 @@ module TestRay =
         property Num.float
         |> Prop.forAll (Arb.fromGen gen)
         |> Check.QuickThrowOnFailure
+
+    [<Test>]
+    let ``walkAlong walks the right distance`` () =
+        let property (ray : Ray<float>, distance : float) =
+            let walked = Ray.walkAlong Num.float ray distance
+            Point.difference Num.float walked ray.Origin
+            |> Point.normSquared Num.float
+            |> Num.float.Equal (distance * distance)
+
+        property
+        |> Prop.forAll (Arb.fromGen (Gen.zip TestUtils.rayGen (Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit)))
+        |> Check.QuickThrowOnFailure

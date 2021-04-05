@@ -7,19 +7,69 @@ type Sphere<'a> =
         /// If an incoming ray has the given colour, and hits the
         /// given point (which is guaranteed to be on the surface),
         /// what colour ray does it output and in what direction?
-        Reflection : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> * Pixel
+        Reflection : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> option * Pixel
     }
+
+type SphereStyle =
+    | WhiteLightSource
+    | WhiteLightSourceAtTop
+    | PureReflection
 
 [<RequireQualifiedAccess>]
 module Sphere =
 
-    let makePureWhite<'a> (centre : Point<'a>) (radius : 'a) : Sphere<'a> =
+    let normal<'a> (num : Num<'a>) (centre : Point<'a>) (p : Point<'a>) : Ray<'a> =
+        {
+            Origin = p
+            Vector = Point.difference num p centre
+        }
+
+    let reflection<'a>
+        (num : Num<'a>)
+        (style : SphereStyle)
+        (centre : Point<'a>)
+        (radius : 'a)
+        : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> option * Pixel
+        =
+        let normal = normal num centre
+        fun incomingRay incomingColour strikePoint ->
+            let normal = normal strikePoint
+            let plane =
+                Plane.makeSpannedBy normal incomingRay
+                |> Plane.orthonormalise num
+
+            match style with
+            | SphereStyle.WhiteLightSource ->
+                None, Pixel.White
+            | SphereStyle.WhiteLightSourceAtTop ->
+                let zCoord = num.DivideInteger (num.Times radius radius) 6
+                let colour =
+                    match num.Compare (Point.normSquared num (Point.difference num strikePoint centre)) zCoord with
+                    | Greater ->
+                        Pixel.White
+                    | _ ->
+                        Pixel.Black
+                None, colour
+            | SphereStyle.PureReflection ->
+                let outgoing =
+                    match plane with
+                    | None ->
+                        // Incoming ray is directly along the normal
+                        {
+                            Origin = strikePoint
+                            Vector = incomingRay.Vector |> Vector.scale num (num.Negate num.One)
+                        }
+                    | Some plane ->
+                        let angle = Ray.angle num incomingRay normal
+                        Plane.rayAtAngle num normal plane angle
+
+                Some outgoing, incomingColour
+
+    let make<'a> (num : Num<'a>) (style : SphereStyle) (centre : Point<'a>) (radius : 'a) : Sphere<'a> =
         {
             Centre = centre
             Radius = radius
-            Reflection =
-                fun incomingRay incomingColour strikePoint ->
-                    failwith ""
+            Reflection = reflection num style centre radius
         }
 
     let liesOn<'a> (num : Num<'a>) (point : Point<'a>) (sphere : Sphere<'a>) : bool =
@@ -28,12 +78,14 @@ module Sphere =
     /// Returns the intersections of this ray with this sphere.
     /// The nearest intersection is returned first, if there are multiple.
     /// Does not return any intersections which are behind us.
+    /// If the sphere is made of a material which does not re-emit light, you'll
+    /// get a None for the outgoing ray.
     let intersections<'a>
         (num : Num<'a>)
         (sphere : Sphere<'a>)
         (ray : Ray<'a>)
         (incomingColour : Pixel)
-        : (Point<'a> * Ray<'a> * Pixel) array
+        : (Point<'a> * Ray<'a> option * Pixel) array
         =
         // The sphere is all points P such that Point.normSquared (P - sphere.Centre) = sphere.Radius^2
         // The ray is all ray.Origin + t ray.Vector for any t.

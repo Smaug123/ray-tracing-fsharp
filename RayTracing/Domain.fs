@@ -1,5 +1,7 @@
 namespace RayTracing
 
+open System
+
 [<Measure>]
 type progress
 
@@ -10,11 +12,17 @@ type Pixel =
         Green : byte
         Blue : byte
     }
-    static member White =
+    static member Black =
         {
             Red = 0uy
             Green = 0uy
             Blue = 0uy
+        }
+    static member White =
+        {
+            Red = 255uy
+            Green = 255uy
+            Blue = 255uy
         }
 
 [<RequireQualifiedAccess>]
@@ -22,20 +30,20 @@ module Pixel =
     let average (s : Pixel seq) : Pixel =
         use e = s.GetEnumerator ()
         if not (e.MoveNext ()) then failwith "Input sequence was empty when averaging pixels"
-        let mutable count = 1.0
+        let mutable count = 1
         let mutable r = e.Current.Red |> float
         let mutable g = e.Current.Green |> float
         let mutable b = e.Current.Blue |> float
         while e.MoveNext () do
-            let newCount = count + 1.0
-            r <- (r * count + float e.Current.Red) / newCount
-            g <- (g * count + float e.Current.Green) / newCount
-            b <- (b * count + float e.Current.Blue) / newCount
-            count <- newCount
+            count <- count + 1
+            r <- r + float e.Current.Red
+            g <- g + float e.Current.Green
+            b <- b + float e.Current.Blue
+        let count = float count
         {
-            Red = byte r
-            Green = byte g
-            Blue = byte b
+            Red = byte (Math.Round (r / count))
+            Green = byte (Math.Round (g / count))
+            Blue = byte (Math.Round (b / count))
         }
 
 
@@ -56,3 +64,19 @@ module Vector =
             for i in 0..p1.Length - 1 do
                 answer <- num.Add answer (num.Times p1.[i] p2.[i])
             answer
+
+    let scale<'a> (num : Num<'a>) (scale : 'a) (vec : Point<'a>) : Point<'a> =
+        match vec with
+        | Point vec ->
+            vec
+            |> Array.map (fun i -> num.Times scale i)
+            |> Point
+
+    let unitise<'a> (num : Num<'a>) (vec : Point<'a>) : Point<'a> option =
+        let dot = dot num vec vec
+        match num.Compare dot num.Zero with
+        | Equal -> None
+        | _ ->
+            let factor = dot |> num.Reciprocal |> num.Sqrt
+            scale num factor vec
+            |> Some

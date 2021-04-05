@@ -35,11 +35,13 @@ module SampleImages =
         {
             Objects =
                 [|
-                    Hittable.Sphere (Sphere.makePureWhite (Point [| 0.0 ; 0.0 ; 1.0 |]) 0.5)
-                    Hittable.Sphere (Sphere.makePureWhite (Point [| 1.5 ; 1.0 ; 2.0 |]) 0.25)
+                    Hittable.Sphere (Sphere.make Num.float SphereStyle.PureReflection (Point [| 0.0 ; 0.0 ; 1.0 |]) 0.5)
+                    Hittable.Sphere (Sphere.make Num.float SphereStyle.PureReflection (Point [| 1.5 ; 1.0 ; 2.0 |]) 0.25)
+                    // Light source: a large sphere which emits light from the top
+                    Hittable.Sphere (Sphere.make Num.float SphereStyle.WhiteLightSource (Point [| 0.0 ; 0.0 ; 0.0 |]) 100.)
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * 800.0 |> int) 800 camera
+        |> Scene.render progressIncrement (aspectRatio * 200.0 |> int) 200 camera
 
     let get (s : SampleImages) : (float<progress> -> unit) -> float<progress> * Image Async =
         match s with

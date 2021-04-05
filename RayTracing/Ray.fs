@@ -11,6 +11,8 @@ module Ray =
     let walkAlong<'a> (num : Num<'a>) (ray : Ray<'a>) (magnitude : 'a) : Point<'a> =
         let (Point origin) = ray.Origin
         let (Point vector) = ray.Vector
+        let size = Point.normSquared num ray.Vector |> num.Sqrt
+        let magnitude = num.Divide magnitude size
 
         Array.zip origin vector
         |> Array.map (fun (originCoord, directionCoord) -> num.Add originCoord (num.Times directionCoord magnitude))
@@ -21,6 +23,13 @@ module Ray =
             Origin = p1
             Vector = Point.difference num p2 p1
         }
+
+    /// Given two rays from the same point, what is the angle between them?
+    let angle<'a> (num : Num<'a>) (r1 : Ray<'a>) (r2 : Ray<'a>) : 'a Radian =
+        // a.b = |a| |b| cos theta
+        let v1 = walkAlong num { r1 with Origin = r2.Origin } num.One
+        let v2 = walkAlong num r2 num.One
+        num.ArcCos (Vector.dot num (Point.difference num v1 r2.Origin) (Point.difference num v2 r2.Origin))
 
     let parallelTo<'a> (p1 : Point<'a>) (ray : Ray<'a>) : Ray<'a> =
         {

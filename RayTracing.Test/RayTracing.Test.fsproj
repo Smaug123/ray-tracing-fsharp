@@ -12,6 +12,7 @@
         <Compile Include="TestSphereIntersection.fs" />
         <EmbeddedResource Include="PpmOutputExample.txt" />
         <Compile Include="TestPixel.fs" />
+        <Compile Include="TestPlane.fs" />
     </ItemGroup>
 
     <ItemGroup>

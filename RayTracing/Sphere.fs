@@ -34,15 +34,6 @@ module Sphere =
             Vector = Point.difference num p centre
         }
 
-    let rec randomUnitVector<'a> (num : Num<'a>) (rand : Random) (dimension : int) : Vector<'a> =
-        let vector =
-            Array.init dimension (fun _ -> num.Subtract (num.TimesInteger 2 (num.RandomBetween01 rand)) num.One)
-            |> Vector
-            |> Vector.unitise num
-        match vector with
-        | None -> randomUnitVector num rand dimension
-        | Some result -> result
-
     let reflection<'a>
         (num : Num<'a>)
         (style : SphereStyle<'a>)
@@ -56,12 +47,12 @@ module Sphere =
 
             match style with
             | SphereStyle.LightSource colour ->
-                None, colour
+                None, Pixel.combine incomingColour colour
             | SphereStyle.LightSourceCap colour ->
                 let circleCentreZCoord =
                     match centre with
                     | Point v -> Array.head v
-                let zCoordLowerBound = num.Add circleCentreZCoord (num.Subtract radius (num.DivideInteger radius 5))
+                let zCoordLowerBound = num.Add circleCentreZCoord (num.Subtract radius (num.DivideInteger radius 4))
                 let strikeZCoord =
                     match strikePoint with
                     | Point v -> Array.head v
@@ -80,7 +71,7 @@ module Sphere =
                         Vector =
                             let (Point centre) = centre
                             let sphereCentre = Ray.walkAlong num normal num.One
-                            let offset = randomUnitVector num rand centre.Length
+                            let offset = Vector.randomUnit num rand centre.Length
                             let target = Ray.walkAlong num { Origin = sphereCentre ; Vector = offset } num.One
                             Point.difference num target strikePoint
                     }

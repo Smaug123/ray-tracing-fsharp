@@ -16,6 +16,7 @@ type 'a OrthonormalPlane =
         Point : 'a Point
     }
 
+
 [<RequireQualifiedAccess>]
 module Plane =
 

@@ -4,6 +4,7 @@ open System
 
 type Hittable<'a> =
     | Sphere of Sphere<'a>
+    | InfinitePlane of InfinitePlane<'a>
 
 [<RequireQualifiedAccess>]
 module Hittable =
@@ -17,6 +18,9 @@ module Hittable =
         match h with
         | Sphere s ->
             Sphere.intersections num s ray incomingColour
+            |> Array.tryHead
+        | InfinitePlane plane ->
+            InfinitePlane.intersections num plane ray incomingColour
             |> Array.tryHead
 
 type Scene<'a> =
@@ -46,8 +50,8 @@ module Scene =
         (colour : Pixel)
         : Pixel
         =
-        let rec go (pathSoFar : Ray<'a> list) (ray : Ray<'a>) (colour : Pixel) : Pixel =
-            if pathSoFar.Length > maxCount then Colour.Black else
+        let rec go (bounces : int) (ray : Ray<'a>) (colour : Pixel) : Pixel =
+            if bounces > maxCount then Colour.Black else
 
             let thingsWeHit = hitObject num scene ray colour
             match thingsWeHit with
@@ -60,9 +64,9 @@ module Scene =
                 | None ->
                     colour
                 | Some outgoingRay ->
-                    go (ray :: pathSoFar) outgoingRay colour
+                    go (bounces + 1) { outgoingRay with Vector = Vector.unitise num outgoingRay.Vector |> Option.get } colour
 
-        go [] ray colour
+        go 0 ray colour
 
     let render<'a>
         (progressIncrement : float<progress> -> unit)
@@ -99,7 +103,7 @@ module Scene =
                                     |> Ray.walkAlong num toWalkUp
                                 let ray = Ray.between num camera.View.Origin endPoint
 
-                                let result = traceRay 5 num s ray Colour.White
+                                let result = traceRay 50 num s ray Colour.White
                                 result
                             )
                             |> Pixel.average

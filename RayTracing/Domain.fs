@@ -55,3 +55,12 @@ module Vector =
         | Vector p1, Vector p2 ->
             Array.zip p1 p2
             |> Array.forall (fun (a, b) -> num.Equal a b)
+
+    let rec randomUnit<'a> (num : Num<'a>) (rand : Random) (dimension : int) : Vector<'a> =
+        let vector =
+            Array.init dimension (fun _ -> num.Subtract (num.TimesInteger 2 (num.RandomBetween01 rand)) num.One)
+            |> Vector
+            |> unitise num
+        match vector with
+        | None -> randomUnit num rand dimension
+        | Some result -> result

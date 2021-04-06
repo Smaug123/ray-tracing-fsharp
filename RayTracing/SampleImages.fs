@@ -1,5 +1,7 @@
 namespace RayTracing
 
+open System
+
 type SampleImages =
     | Gradient
     | Spheres
@@ -29,21 +31,35 @@ module SampleImages =
         }
 
     let spheres (progressIncrement : float<progress> -> unit) : float<progress> * Image Async =
+        let random = Random ()
         let aspectRatio = 16.0 / 9.0
         let camera =
-            Camera.makeBasic Num.float 5.0 aspectRatio (Point [| 0.0 ; 0.0 ; 0.0 |])
+            Camera.makeBasic Num.float 4.0 aspectRatio (Point [| 0.0 ; 0.0 ; 0.0 |])
+        let pixels = 1800
         {
             Objects =
                 [|
-                    Hittable.Sphere (Sphere.make Num.float (SphereStyle.PureReflection (1.0, { Red = 255uy ; Green = 255uy ; Blue = 0uy })) (Point [| 0.0 ; 0.0 ; 10.0 |]) 0.5)
-                    Hittable.Sphere (Sphere.make Num.float (SphereStyle.PureReflection (1.0, { Red = 0uy ; Green = 255uy ; Blue = 255uy })) (Point [| 1.5 ; 1.0 ; 12.0 |]) 0.25)
-                    // Light source: a large sphere which emits light from the top
-                    Hittable.Sphere (Sphere.make Num.float (SphereStyle.LightSourceCap Colour.White) (Point [| 0.0 ; 0.0 ; 10.0 |]) 100.)
+                    Hittable.Sphere (Sphere.make Num.float (SphereStyle.LambertReflection (1.0, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random)) (Point [| 0.0 ; 0.0 ; 9.0 |]) 1.0)
+                    Hittable.Sphere (Sphere.make Num.float (SphereStyle.PureReflection (1.0, { Red = 0uy ; Green = 255uy ; Blue = 255uy })) (Point [| 1.5 ; 0.5 ; 8.0 |]) 0.5)
+                    Hittable.Sphere (Sphere.make Num.float (SphereStyle.LightSource Colour.Blue) (Point [| -1.5 ; 1.5 ; 8.0 |]) 0.5)
+
+                    // Side mirror
+                    Hittable.InfinitePlane (InfinitePlane.make Num.float (InfinitePlaneStyle.PureReflection (1.0, { Colour.White with Green = 240uy })) (Point [| 0.1 ; 0.0 ; 16.0 |]) (Vector [| -2.0 ; 0.0 ; -1.0 |]))
+
+                    // Floor mirror
+                    Hittable.InfinitePlane (InfinitePlane.make Num.float (InfinitePlaneStyle.PureReflection (0.4, Colour.White)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |]))
+
+                    // Back plane
+                    Hittable.InfinitePlane (InfinitePlane.make Num.float (InfinitePlaneStyle.PureReflection (0.6, Colour.White)) (Point [| 0.0 ; 0.0 ; 16.0 |]) (Vector [| 0.0 ; 0.0 ; -1.0 |]))
+
+                    // Light pad behind us
+                    Hittable.InfinitePlane (InfinitePlane.make Num.float (InfinitePlaneStyle.LightSource Colour.White) (Point [| 0.0 ; 1.0 ; -1.0 |]) (Vector [| 0.0 ; -1.0 ; 1.0 |]))
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * 800.0 |> int) 800 camera
+        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
     let get (s : SampleImages) : (float<progress> -> unit) -> float<progress> * Image Async =
         match s with
         | Gradient -> gradient
         | Spheres -> spheres
+

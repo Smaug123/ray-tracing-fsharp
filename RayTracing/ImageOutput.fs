@@ -18,8 +18,9 @@ module ImageOutput =
         (file : IFileInfo)
         : float<progress> * Async<unit>
         =
-        (float (Image.rowCount image)) * 1.0<progress>,
+        (float (Image.rowCount image) + 1.0) * 1.0<progress>,
         async {
+            progressIncrement 1.0<progress>
             use outputStream = file.OpenWrite ()
             use writer = new StreamWriter (outputStream)
             writer.Write "P3\n"
@@ -29,13 +30,14 @@ module ImageOutput =
             match image with
             | Image arr ->
                 let writeRow (row : Pixel []) =
-                    for pixel in 0..row.Length - 2 do
+                    for pixel in 0 .. row.Length - 2 do
                         writer.Write (PixelOutput.toPpm row.[pixel])
                         writer.Write " "
+
                     writer.Write (PixelOutput.toPpm row.[row.Length - 1])
                     progressIncrement 1.0<progress>
 
-                for row in 0..arr.Length - 2 do
+                for row in 0 .. arr.Length - 2 do
                     writeRow arr.[row]
                     writer.Write "\n"
 

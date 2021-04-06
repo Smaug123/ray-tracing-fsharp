@@ -5,13 +5,25 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Rational.fs" />
+        <Compile Include="Algebraic.fs" />
+        <Compile Include="Num.fs" />
+        <Compile Include="Point.fs" />
+        <Compile Include="Pixel.fs" />
         <Compile Include="Domain.fs" />
+        <Compile Include="Ray.fs" />
+        <Compile Include="Plane.fs" />
+        <Compile Include="Sphere.fs" />
+        <Compile Include="InfinitePlane.fs" />
         <Compile Include="ImageOutput.fs" />
+        <Compile Include="Camera.fs" />
+        <Compile Include="Scene.fs" />
         <Compile Include="SampleImages.fs" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="System.IO.Abstractions" Version="13.2.28" />
+      <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
     </ItemGroup>
 
 </Project>

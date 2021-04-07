@@ -13,7 +13,7 @@ module TestPixel =
     let ``Average of one pixel`` () =
         let property (p1 : byte) (p2 : byte) (p3 : byte) : bool =
             let pixel = { Red = p1 ; Green = p2 ; Blue = p3 }
-            Pixel.average [ pixel ]
+            Pixel.average [| pixel |]
             |> (=) pixel
 
         Check.QuickThrowOnFailure property
@@ -78,7 +78,7 @@ module TestPixel =
                 values
                 |> List.map (fun (a, b, c) -> { Pixel.Red = a ; Green = b ; Blue = c })
 
-            let avg = Pixel.average pixels
+            let avg = Pixel.average (Array.ofList pixels)
 
             avg.Green = (pixels |> List.map (fun i -> float i.Green) |> List.average |> Math.Round |> byte)
             && avg.Red = (pixels |> List.map (fun i -> float i.Red) |> List.average |> Math.Round |> byte)

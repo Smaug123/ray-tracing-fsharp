@@ -1,47 +1,46 @@
 namespace RayTracing
 
 /// A plane spanned by two rays from a common origin.
-type 'a Plane =
+type Plane =
     private
         {
-            V1 : 'a Vector
-            V2 : 'a Vector
-            Point : 'a Point
+            V1 : UnitVector
+            V2 : UnitVector
+            Point : Point
         }
 
-type 'a OrthonormalPlane =
+type OrthonormalPlane =
     {
-        V1 : 'a Vector
-        V2 : 'a Vector
-        Point : 'a Point
+        V1 : UnitVector
+        V2 : UnitVector
+        Point : Point
     }
-
 
 [<RequireQualifiedAccess>]
 module Plane =
 
-    let orthonormalise<'a> (num : 'a Num) (plane : 'a Plane) : 'a OrthonormalPlane option =
-        let v1 = Vector.unitise num plane.V1 |> Option.get
-        let coeff = Vector.dot num v1 plane.V2
+    let orthonormalise (plane : Plane) : OrthonormalPlane option =
+        let coeff = UnitVector.dot plane.V1 plane.V2
         let vec2 =
-            Vector.difference num plane.V2 (Vector.scale num coeff v1)
-            |> Vector.unitise num
+            UnitVector.difference' plane.V2 (UnitVector.scale coeff plane.V1)
+            |> Vector.unitise
         match vec2 with
         | None -> None
         | Some v2 ->
             {
-                V1 = v1
+                V1 = plane.V1
                 V2 = v2
                 Point = plane.Point
             }
             |> Some
 
-    let makeSpannedBy<'a> (r1 : 'a Ray) (r2 : 'a Ray) : 'a Plane =
+    let makeSpannedBy (r1 : Ray) (r2 : Ray) : Plane =
         {
-            V1 = r1.Vector
-            V2 = r2.Vector
-            Point = r1.Origin
+            V1 = Ray.vector r1
+            V2 = Ray.vector r2
+            Point = Ray.origin r1
         }
 
-    let basis<'a> (plane : 'a OrthonormalPlane) : 'a Ray * 'a Ray =
-        { Origin = plane.Point ; Vector = plane.V1 }, { Origin = plane.Point ; Vector = plane.V2 }
+    let basis (plane : OrthonormalPlane) : Ray * Ray =
+        Ray.make plane.Point plane.V1,
+        Ray.make plane.Point plane.V2

@@ -45,19 +45,15 @@ module Colour =
 
 [<RequireQualifiedAccess>]
 module Pixel =
-    let average (s : Pixel seq) : Pixel =
-        use e = s.GetEnumerator ()
-        if not (e.MoveNext ()) then failwith "Input sequence was empty when averaging pixels"
-        let mutable count = 1
-        let mutable r = e.Current.Red |> float
-        let mutable g = e.Current.Green |> float
-        let mutable b = e.Current.Blue |> float
-        while e.MoveNext () do
-            count <- count + 1
-            r <- r + float e.Current.Red
-            g <- g + float e.Current.Green
-            b <- b + float e.Current.Blue
-        let count = float count
+    let average (s : Pixel []) : Pixel =
+        let mutable r = s.[0].Red |> float
+        let mutable g = s.[0].Green |> float
+        let mutable b = s.[0].Blue |> float
+        for i in 1..s.Length - 1 do
+            r <- r + float s.[i].Red
+            g <- g + float s.[i].Green
+            b <- b + float s.[i].Blue
+        let count = s.Length |> float
         {
             Red = byte (Math.Round (r / count))
             Green = byte (Math.Round (g / count))
@@ -71,9 +67,10 @@ module Pixel =
             Blue = (int p1.Blue * int p2.Blue) / 255 |> byte
         }
 
-    let darken<'a> (num : Num<'a>) (p : Pixel) (albedo : 'a) : Pixel =
+    /// albedo should be between 0 and 1.
+    let darken (p : Pixel) (albedo : float) : Pixel =
         {
-            Red = num.TimesInteger (int p.Red) albedo |> num.Round |> byte
-            Green = num.TimesInteger (int p.Green) albedo |> num.Round |> byte
-            Blue = num.TimesInteger (int p.Blue) albedo |> num.Round |> byte
+            Red = (float p.Red) * albedo |> Math.Round |> byte
+            Green = (float p.Green) * albedo |> Math.Round |> byte
+            Blue = (float p.Blue) * albedo |> Math.Round |> byte
         }

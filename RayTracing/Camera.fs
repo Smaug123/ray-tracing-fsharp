@@ -1,66 +1,58 @@
 namespace RayTracing
 
-type Camera<'a> =
+type Camera =
     {
-        Num : Num<'a>
         /// How tall is our viewport?
-        ViewportHeight : 'a
+        ViewportHeight : float
         /// How wide is our viewport?
-        ViewportWidth : 'a
+        ViewportWidth : float
         /// In which direction is the camera pointing?
-        View : Ray<'a>
+        View : Ray
         /// What is the orientation of the imaginary plane
         /// onto which we're collecting the pixels of the result?
         /// This is normal to View and to ViewportYAxis, and its
         /// origin is at distance FocalLength from View.Origin.
-        ViewportXAxis : Ray<'a>
+        ViewportXAxis : Ray
         /// What is the orientation of the imaginary plane
         /// onto which we're collecting the pixels of the result?
         /// This is normal to View and to ViewportXAxis, and its
         /// origin is at distance FocalLength from View.Origin.
-        ViewportYAxis : Ray<'a>
+        ViewportYAxis : Ray
         /// How far away from the camera is the imaginary plane
         /// onto which we're collecting the pixels of the result?
-        FocalLength : 'a
+        FocalLength : float
         /// How many samples will we take per pixel, for anti-aliasing?
         SamplesPerPixel : int
     }
 
 [<RequireQualifiedAccess>]
 module Camera =
-    let makeBasic<'a>
-        (n : Num<'a>)
-        (focalLength : 'a)
-        (aspectRatio : 'a)
-        (origin : Point<'a>)
-        : Camera<'a>
+    let makeBasic
+        (focalLength : float)
+        (aspectRatio : float)
+        (origin : Point)
+        : Camera
         =
-        let height = n.Double n.One
+        let height = 2.0
+        let basis = UnitVector.basis 3
         let view =
-            {
-                Origin = origin
-                Vector = Vector [| n.Zero ; n.Zero ; n.One |]
-            }
+            basis.[2]
+            |> Ray.make origin
         let xAxis =
-            {
-                Origin = origin
-                Vector = Vector [| n.One ; n.Zero ; n.Zero |]
-            }
+            basis.[0]
+            |> Ray.make origin
         let yAxis =
-            {
-                Origin = origin
-                Vector = Vector [| n.Zero ; n.One ; n.Zero |]
-            }
+            basis.[1]
+            |> Ray.make origin
 
         {
-            Num = n
             FocalLength = focalLength
             ViewportHeight = height
-            ViewportWidth = n.Times aspectRatio height
+            ViewportWidth = aspectRatio * height
             View = view
             ViewportXAxis =
-                Ray.parallelTo (Ray.walkAlong n view focalLength) xAxis
+                Ray.parallelTo (Ray.walkAlong view focalLength) xAxis
             ViewportYAxis =
-                Ray.parallelTo (Ray.walkAlong n view focalLength) yAxis
+                Ray.parallelTo (Ray.walkAlong view focalLength) yAxis
             SamplesPerPixel = 10
         }

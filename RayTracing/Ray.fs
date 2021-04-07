@@ -29,8 +29,9 @@ module Ray =
         let (Point origin) = ray.Origin
         let (UnitVector (Vector vector)) = ray.Vector
 
-        Array.zip origin vector
-        |> Array.map (fun (originCoord, directionCoord) -> originCoord + (directionCoord * magnitude))
+        Array.init origin.Length (fun i ->
+            origin.[i] + (vector.[i] * magnitude)
+        )
         |> Point
 
     let between (p1 : Point) (p2 : Point) : Ray option =

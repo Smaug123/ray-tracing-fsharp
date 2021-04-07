@@ -88,8 +88,9 @@ module Point =
     let difference (p1 : Point) (p2 : Point) : Vector =
         match p1, p2 with
         | Point p1, Point p2 ->
-            Array.zip p1 p2
-            |> Array.map (fun (a, b) -> a - b)
+            Array.init p1.Length (fun i ->
+                p1.[i] - p2.[i]
+            )
             |> Vector
 
     let equal (p1 : Point) (p2 : Point) : bool =

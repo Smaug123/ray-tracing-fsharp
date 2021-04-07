@@ -35,7 +35,7 @@ module SampleImages =
         let aspectRatio = 16.0 / 9.0
         let camera =
             Camera.makeBasic 4.0 aspectRatio (Point [| 0.0 ; 0.0 ; 0.0 |])
-        let pixels = 1800
+        let pixels = 200
         {
             Objects =
                 [|

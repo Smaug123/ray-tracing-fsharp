@@ -121,9 +121,7 @@ module Sphere =
         let difference =
             Point.difference (Ray.origin ray) sphere.Centre
 
-        let vector = Ray.vector ray
-
-        let b = (UnitVector.dot' vector difference) * 2.0
+        let b = (UnitVector.dot' (Ray.vector ray) difference) * 2.0
 
         let c = (Vector.normSquared difference) - (sphere.Radius * sphere.Radius)
 
@@ -139,7 +137,7 @@ module Sphere =
             | Comparison.Greater ->
                 let intermediate = sqrt discriminant
                 [|
-                    (intermediate - b) / 2.0
+                    (intermediate - b) / 2.0 ;
                     - (b + intermediate) / 2.0
                 |]
             // Don't return anything that's behind us

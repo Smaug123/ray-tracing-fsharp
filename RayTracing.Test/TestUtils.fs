@@ -1,6 +1,5 @@
 namespace RayTracing.Test
 
-open System.Numerics
 open RayTracing
 open System.IO
 open System.Reflection
@@ -39,17 +38,23 @@ module TestUtils =
         Gen.three Arb.generate<NormalFloat>
         |> Gen.map (fun (i, j, k) -> Vector [| i.Get ; j.Get ; k.Get |])
 
+    let unitVectorGen =
+        vectorGen
+        |> Gen.filter (fun i -> Vector.normSquared i > 0.0)
+        |> Gen.map Vector.unitise
+        |> Gen.map Option.get
+
     let rayGen : Gen<Ray> =
         gen {
             let! origin = pointGen
-            let! direction = vectorGen
-            return { Origin = origin ; Vector = direction }
+            let! direction = unitVectorGen
+            return Ray.make origin direction
         }
 
     let planeGen =
         gen {
             let! origin = pointGen
-            let! v1 = vectorGen
-            let! v2 = vectorGen
-            return Plane.makeSpannedBy { Origin = origin ; Vector = v1 } { Origin = origin ; Vector = v2 }
+            let! v1 = unitVectorGen
+            let! v2 = unitVectorGen
+            return Plane.makeSpannedBy (Ray.make origin v1) (Ray.make origin v2)
         }

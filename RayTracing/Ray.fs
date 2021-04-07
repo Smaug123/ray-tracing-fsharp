@@ -1,26 +1,40 @@
 namespace RayTracing
 
 type Ray =
-    {
-        Origin : Point
-        Vector : Vector
-    }
+    private
+        {
+            Origin : Point
+            Vector : UnitVector
+        }
 
 [<RequireQualifiedAccess>]
 module Ray =
+    let make' (origin : Point) (vector : Vector) : Ray option =
+        match Vector.unitise vector with
+        | None -> None
+        | Some v ->
+            {
+                Origin = origin
+                Vector = v
+            }
+            |> Some
+
+    let make (origin : Point) (vector : UnitVector) : Ray =
+        {
+            Origin = origin
+            Vector = vector
+        }
+
     let walkAlong (ray : Ray) (magnitude : float) : Point =
         let (Point origin) = ray.Origin
-        let (Vector vector) = ray.Vector |> Vector.unitise |> Option.get
+        let (UnitVector (Vector vector)) = ray.Vector
 
         Array.zip origin vector
         |> Array.map (fun (originCoord, directionCoord) -> originCoord + (directionCoord * magnitude))
         |> Point
 
-    let between (p1 : Point) (p2 : Point) : Ray =
-        {
-            Origin = p1
-            Vector = Point.difference p2 p1
-        }
+    let between (p1 : Point) (p2 : Point) : Ray option =
+        make' p1 (Point.difference p2 p1)
 
     let parallelTo (p1 : Point) (ray : Ray) : Ray =
         {
@@ -30,7 +44,7 @@ module Ray =
 
     let liesOn (point : Point) (ray : Ray) : bool =
         match point, ray.Origin, ray.Vector with
-        | Point x, Point y, Vector ray ->
+        | Point x, Point y, UnitVector (Vector ray) ->
             let rec go (state : float option) (i : int) =
                 if i >= x.Length then state else
                 let d = x.[i]
@@ -44,3 +58,15 @@ module Ray =
 
             go None 0
             |> Option.isSome
+
+    let vector r = r.Vector
+    let origin r = r.Origin
+
+    let flip (r : Ray) =
+        {
+            Origin = r.Origin
+            Vector =
+                let (UnitVector v) = r.Vector
+                Vector.scale -1.0 v
+                |> UnitVector
+        }

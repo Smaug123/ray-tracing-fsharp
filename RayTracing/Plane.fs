@@ -4,15 +4,15 @@ namespace RayTracing
 type Plane =
     private
         {
-            V1 : Vector
-            V2 : Vector
+            V1 : UnitVector
+            V2 : UnitVector
             Point : Point
         }
 
 type OrthonormalPlane =
     {
-        V1 : Vector
-        V2 : Vector
+        V1 : UnitVector
+        V2 : UnitVector
         Point : Point
     }
 
@@ -20,16 +20,15 @@ type OrthonormalPlane =
 module Plane =
 
     let orthonormalise (plane : Plane) : OrthonormalPlane option =
-        let v1 = Vector.unitise plane.V1 |> Option.get
-        let coeff = Vector.dot v1 plane.V2
+        let coeff = UnitVector.dot plane.V1 plane.V2
         let vec2 =
-            Vector.difference plane.V2 (Vector.scale coeff v1)
+            UnitVector.difference' plane.V2 (UnitVector.scale coeff plane.V1)
             |> Vector.unitise
         match vec2 with
         | None -> None
         | Some v2 ->
             {
-                V1 = v1
+                V1 = plane.V1
                 V2 = v2
                 Point = plane.Point
             }
@@ -37,10 +36,11 @@ module Plane =
 
     let makeSpannedBy (r1 : Ray) (r2 : Ray) : Plane =
         {
-            V1 = r1.Vector
-            V2 = r2.Vector
-            Point = r1.Origin
+            V1 = Ray.vector r1
+            V2 = Ray.vector r2
+            Point = Ray.origin r1
         }
 
     let basis (plane : OrthonormalPlane) : Ray * Ray =
-        { Origin = plane.Point ; Vector = plane.V1 }, { Origin = plane.Point ; Vector = plane.V2 }
+        Ray.make plane.Point plane.V1,
+        Ray.make plane.Point plane.V2

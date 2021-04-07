@@ -34,21 +34,16 @@ module Camera =
         : Camera
         =
         let height = 2.0
+        let basis = UnitVector.basis 3
         let view =
-            {
-                Origin = origin
-                Vector = Vector [| 0.0 ; 0.0 ; 1.0 |]
-            }
+            basis.[2]
+            |> Ray.make origin
         let xAxis =
-            {
-                Origin = origin
-                Vector = Vector [| 1.0 ; 0.0 ; 0.0 |]
-            }
+            basis.[0]
+            |> Ray.make origin
         let yAxis =
-            {
-                Origin = origin
-                Vector = Vector [| 0.0 ; 1.0 ; 0.0 |]
-            }
+            basis.[1]
+            |> Ray.make origin
 
         {
             FocalLength = focalLength

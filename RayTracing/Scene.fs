@@ -38,7 +38,7 @@ module Scene =
         =
         s.Objects
         |> Array.choose (Hittable.hits ray colour)
-        |> Float.sortInPlaceBy (fun (a, _, _) -> Vector.normSquared (Point.difference a ray.Origin))
+        |> Float.sortInPlaceBy (fun (a, _, _) -> Vector.normSquared (Point.difference a (Ray.origin ray)))
 
     let internal traceRay
         (maxCount : int)
@@ -61,7 +61,7 @@ module Scene =
                 | None ->
                     colour
                 | Some outgoingRay ->
-                    go (bounces + 1) { outgoingRay with Vector = Vector.unitise outgoingRay.Vector |> Option.get } colour
+                    go (bounces + 1) outgoingRay colour
 
         go 0 ray colour
 
@@ -97,7 +97,9 @@ module Scene =
                                 let endPoint =
                                     ((float row * camera.ViewportHeight) + (Float.random rand)) / float maxHeightCoord
                                     |> Ray.walkAlong toWalkUp
-                                let ray = Ray.between camera.View.Origin endPoint
+                                let ray =
+                                    Ray.between (Ray.origin camera.View) endPoint
+                                    |> Option.get
 
                                 let result = traceRay 50 s ray Colour.White
                                 result

@@ -11,9 +11,9 @@ module TestRay =
     let ``Walking along two parallel rays maintains the same vector difference`` () =
         let property
             (
-                ((originX : float, originY : float, originZ : float),
-                 (origin2X : float, origin2Y : float, origin2Z : float),
-                 (rayX : float, rayY : float, rayZ : float)),
+                (((originX : float, originY : float, originZ : float),
+                  (origin2X : float, origin2Y : float, origin2Z : float)),
+                 vector : UnitVector),
                 magnitude : float
             )
             : bool
@@ -23,9 +23,8 @@ module TestRay =
             let origin2 =
                 [| origin2X; origin2Y; origin2Z |] |> Point
 
-            let vector = Vector [| rayX; rayY; rayZ |]
-            let ray = { Origin = origin1; Vector = vector }
-            let ray2 = { Origin = origin2; Vector = vector }
+            let ray = Ray.make origin1 vector
+            let ray2 = Ray.make origin2 vector
             let output = Ray.walkAlong ray magnitude
 
             let output2 =
@@ -44,7 +43,7 @@ module TestRay =
             |> Gen.map NormalFloat.op_Explicit
 
         let gen =
-            Gen.zip (Gen.three (Gen.three gen)) gen
+            Gen.zip (Gen.zip (Gen.two (Gen.three gen)) TestUtils.unitVectorGen) gen
 
         property
         |> Prop.forAll (Arb.fromGen gen)
@@ -54,7 +53,7 @@ module TestRay =
     let ``walkAlong walks the right distance`` () =
         let property (ray : Ray, distance : float) =
             let walked = Ray.walkAlong ray distance
-            Point.difference walked ray.Origin
+            Point.difference walked (Ray.origin ray)
             |> Vector.normSquared
             |> Float.equal (distance * distance)
 

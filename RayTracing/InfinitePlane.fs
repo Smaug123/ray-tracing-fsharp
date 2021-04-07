@@ -15,7 +15,7 @@ type InfinitePlaneStyle =
 
 type InfinitePlane =
     {
-        Normal : Vector
+        Normal : UnitVector
         Point : Point
         /// If an incoming ray has the given colour, and hits the
         /// given point (which is guaranteed to be on the surface),
@@ -39,14 +39,15 @@ module InfinitePlane =
         =
         // ((ray.Origin - plane.Point) + t ray.Vector) . plane.Normal = 0
 
-        let rayVec = ray.Vector |> Vector.unitise |> Option.get
-        let denominator = Vector.dot plane.Normal rayVec
+        let rayVec = Ray.vector ray
+        let denominator = UnitVector.dot plane.Normal rayVec
         if Float.equal denominator 0.0 then [||]
         else
-            let t = (Vector.dot (Point.difference plane.Point ray.Origin) plane.Normal) / denominator
+            // TODO I flipped the args in this dot
+            let t = (UnitVector.dot' plane.Normal (Point.difference plane.Point (Ray.origin ray))) / denominator
             match Float.compare t 0.0 with
             | Greater ->
-                let strikePoint = Ray.walkAlong { Origin = ray.Origin ; Vector = rayVec } t
+                let strikePoint = Ray.walkAlong ray t
                 let outgoing, newColour = plane.Reflection ray incomingColour strikePoint
                 [| strikePoint, outgoing, newColour |]
             | _ -> [||]
@@ -54,7 +55,7 @@ module InfinitePlane =
     let reflection
         (style : InfinitePlaneStyle)
         (pointOnPlane : Point)
-        (normal : Vector)
+        (normal : UnitVector)
         : Ray -> Pixel -> Point -> Ray option * Pixel
         =
         fun incomingRay incomingColour strikePoint ->
@@ -64,49 +65,42 @@ module InfinitePlane =
 
             | InfinitePlaneStyle.LambertReflection (albedo, colour, rand) ->
                 let outgoing =
-                    {
-                        Origin = strikePoint
-                        Vector =
-                            let (Point pointOnPlane) = pointOnPlane
-                            let sphereCentre = Ray.walkAlong { Origin = strikePoint ; Vector = normal } 1.0
-                            let offset = Vector.randomUnit rand pointOnPlane.Length
-                            let target = Ray.walkAlong { Origin = sphereCentre ; Vector = offset } 1.0
-                            Point.difference target strikePoint
-                    }
+                    let (Point pointOnPlane) = pointOnPlane
+                    let sphereCentre = Ray.walkAlong (Ray.make strikePoint normal) 1.0
+                    let offset = UnitVector.random rand pointOnPlane.Length
+                    let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
+                    Point.difference target strikePoint
+                    |> Ray.make' strikePoint
 
                 let newColour = Pixel.combine incomingColour colour
-                Some outgoing, Pixel.darken newColour albedo
+                outgoing, Pixel.darken newColour albedo
 
             | InfinitePlaneStyle.PureReflection (albedo, colour) ->
                 let plane =
-                    Plane.makeSpannedBy { Origin = strikePoint ; Vector = normal } incomingRay
+                    Plane.makeSpannedBy (Ray.make strikePoint normal) incomingRay
                     |> Plane.orthonormalise
                 let outgoing =
                     match plane with
                     | None ->
                         // Incoming ray is directly along the normal
-                        {
-                            Origin = strikePoint
-                            Vector = incomingRay.Vector |> Vector.scale -1.0
-                        }
+                        Ray.flip incomingRay
+                        |> Ray.parallelTo strikePoint
+                        |> Some
                     | Some plane ->
                         // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
                         // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
-                        let normalComponent = (Vector.dot plane.V1 incomingRay.Vector)
-                        let tangentComponent = - (Vector.dot plane.V2 incomingRay.Vector)
-                        {
-                            Origin = strikePoint
-                            Vector =
-                                Ray.walkAlong { Origin = Ray.walkAlong { Origin = plane.Point ; Vector = plane.V1 } normalComponent ; Vector = plane.V2 } tangentComponent
-                                |> Point.difference strikePoint
-                        }
+                        let normalComponent = (UnitVector.dot plane.V1 (Ray.vector incomingRay))
+                        let tangentComponent = - (UnitVector.dot plane.V2 (Ray.vector incomingRay))
+                        Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2) tangentComponent
+                        |> Point.difference strikePoint
+                        |> Ray.make' strikePoint
 
                 let newColour = Pixel.combine incomingColour colour
                 let darkened = Pixel.darken newColour albedo
-                Some outgoing, darkened
+                outgoing, darkened
 
 
-    let make (style : InfinitePlaneStyle) (pointOnPlane : Point) (normal : Vector) : InfinitePlane =
+    let make (style : InfinitePlaneStyle) (pointOnPlane : Point) (normal : UnitVector) : InfinitePlane =
         {
             Point = pointOnPlane
             Normal = normal

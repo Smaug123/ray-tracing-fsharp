@@ -44,16 +44,16 @@ module SampleImages =
                     Hittable.Sphere (Sphere.make (SphereStyle.LightSource Colour.Blue) (Point [| -1.5 ; 1.5 ; 8.0 |]) 0.5)
 
                     // Side mirror
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (1.0, { Colour.White with Green = 240uy })) (Point [| 0.1 ; 0.0 ; 16.0 |]) (Vector [| -2.0 ; 0.0 ; -1.0 |]))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (1.0, { Colour.White with Green = 240uy })) (Point [| 0.1 ; 0.0 ; 16.0 |]) (Vector [| -2.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
 
                     // Floor mirror
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.4, Colour.White)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |]))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.4, Colour.White)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |] |> Vector.unitise |> Option.get))
 
                     // Back plane
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.6, Colour.White)) (Point [| 0.0 ; 0.0 ; 16.0 |]) (Vector [| 0.0 ; 0.0 ; -1.0 |]))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.6, Colour.White)) (Point [| 0.0 ; 0.0 ; 16.0 |]) (Vector [| 0.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
 
                     // Light pad behind us
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource Colour.White) (Point [| 0.0 ; 1.0 ; -1.0 |]) (Vector [| 0.0 ; -1.0 ; 1.0 |]))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource Colour.White) (Point [| 0.0 ; 1.0 ; -1.0 |]) (Vector [| 0.0 ; -1.0 ; 1.0 |] |> Vector.unitise |> Option.get))
                 |]
         }
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera

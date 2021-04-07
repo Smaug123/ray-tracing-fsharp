@@ -10,6 +10,8 @@ type Point = Point of float array
 [<NoEquality ; NoComparison>]
 type Vector = Vector of float array
 
+type UnitVector = UnitVector of Vector
+
 [<RequireQualifiedAccess>]
 module Vector =
     let dot (p1 : Vector) (p2 : Vector) : float =
@@ -36,11 +38,12 @@ module Vector =
             answer
             |> Vector
 
-    let unitise (vec : Vector) : Vector option =
+    let unitise (vec : Vector) : UnitVector option =
         let dot = dot vec vec
         if Float.equal dot 0.0 then None else
         let factor = 1.0 / sqrt dot
         scale factor vec
+        |> UnitVector
         |> Some
 
     let normSquared (vec : Vector) : float =
@@ -54,14 +57,31 @@ module Vector =
                 if Float.equal p1.[i] p2.[i] then go (i + 1) else false
             go 0
 
-    let rec randomUnit (rand : Random) (dimension : int) : Vector =
+[<RequireQualifiedAccess>]
+module UnitVector =
+    let rec random (rand : Random) (dimension : int) : UnitVector =
         let vector =
             Array.init dimension (fun _ -> (2.0 * Float.random rand) - 1.0)
             |> Vector
-            |> unitise
+            |> Vector.unitise
         match vector with
-        | None -> randomUnit rand dimension
+        | None -> random rand dimension
         | Some result -> result
+
+    let dot (UnitVector a) (UnitVector b) = Vector.dot a b
+    let dot' (UnitVector a) (b : Vector) = Vector.dot a b
+    let difference (UnitVector v1) (UnitVector v2) = Vector.difference v1 v2
+    let difference' (UnitVector v1) (v2 : Vector) = Vector.difference v1 v2
+    let scale (scale : float) (UnitVector vec) = Vector.scale scale vec
+
+    let basis (dimension : int) : UnitVector [] =
+        Array.init dimension (fun i ->
+            Array.init dimension (fun j ->
+                if i = j then 1.0 else 0.0
+            )
+            |> Vector
+            |> UnitVector
+        )
 
 [<RequireQualifiedAccess>]
 module Point =
@@ -97,4 +117,3 @@ module Point =
             Array.zip v1 v2
             |> Array.map (fun (a, b) -> a + b)
             |> Point
-

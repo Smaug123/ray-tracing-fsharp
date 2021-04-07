@@ -29,10 +29,8 @@ type SphereStyle =
 module Sphere =
 
     let normal (centre : Point) (p : Point) : Ray =
-        {
-            Origin = p
-            Vector = Point.difference p centre
-        }
+        Ray.make' p (Point.difference p centre)
+        |> Option.get
 
     let reflection
         (style : SphereStyle)
@@ -65,18 +63,15 @@ module Sphere =
 
             | SphereStyle.LambertReflection (albedo, colour, rand) ->
                 let outgoing =
-                    {
-                        Origin = strikePoint
-                        Vector =
-                            let (Point centre) = centre
-                            let sphereCentre = Ray.walkAlong normal 1.0
-                            let offset = Vector.randomUnit rand centre.Length
-                            let target = Ray.walkAlong { Origin = sphereCentre ; Vector = offset } 1.0
-                            Point.difference target strikePoint
-                    }
+                    let (Point centre) = centre
+                    let sphereCentre = Ray.walkAlong normal 1.0
+                    let offset = UnitVector.random rand centre.Length
+                    let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
+                    Point.difference target strikePoint
+                    |> Ray.make' strikePoint
 
                 let newColour = Pixel.combine incomingColour colour
-                Some outgoing, Pixel.darken newColour albedo
+                outgoing, Pixel.darken newColour albedo
 
             | SphereStyle.PureReflection (albedo, colour) ->
                 let plane =
@@ -86,25 +81,21 @@ module Sphere =
                     match plane with
                     | None ->
                         // Incoming ray is directly along the normal
-                        {
-                            Origin = strikePoint
-                            Vector = incomingRay.Vector |> Vector.scale -1.0
-                        }
+                        Ray.flip incomingRay
+                        |> Ray.parallelTo strikePoint
+                        |> Some
                     | Some plane ->
                         // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
                         // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
-                        let normalComponent = Vector.dot plane.V1 incomingRay.Vector
-                        let tangentComponent = - (Vector.dot plane.V2 incomingRay.Vector)
-                        {
-                            Origin = strikePoint
-                            Vector =
-                                Ray.walkAlong { Origin = Ray.walkAlong { Origin = plane.Point ; Vector = plane.V1 } normalComponent ; Vector = plane.V2 } tangentComponent
-                                |> Point.difference strikePoint
-                        }
+                        let normalComponent = UnitVector.dot plane.V1 (Ray.vector incomingRay)
+                        let tangentComponent = - (UnitVector.dot plane.V2 (Ray.vector incomingRay))
+                        Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2) tangentComponent
+                        |> Point.difference strikePoint
+                        |> Ray.make' strikePoint
 
                 let newColour = Pixel.combine incomingColour colour
                 let darkened = Pixel.darken newColour albedo
-                Some outgoing, darkened
+                outgoing, darkened
 
     let make (style : SphereStyle) (centre : Point) (radius : float) : Sphere =
         {
@@ -138,30 +129,28 @@ module Sphere =
         //     = 0
         // That is:
         let difference =
-            Point.difference ray.Origin sphere.Centre
+            Point.difference (Ray.origin ray) sphere.Centre
 
-        let vector = ray.Vector |> Vector.unitise |> Option.get
-        let a = Vector.normSquared vector
+        let vector = Ray.vector ray
 
-        let b = (Vector.dot vector difference) * 2.0
+        let b = (UnitVector.dot' vector difference) * 2.0
 
         let c = (Vector.normSquared difference) - (sphere.Radius * sphere.Radius)
 
-        let discriminant = (b * b) - (4.0 * a * c)
+        let discriminant = (b * b) - (4.0 * c)
 
         let ts =
             match Float.compare discriminant 0.0 with
             | Comparison.Equal ->
                 [|
-                    - (b / (2.0 * a))
+                    - (b / 2.0)
                 |]
             | Comparison.Less -> [||]
             | Comparison.Greater ->
                 let intermediate = sqrt discriminant
-                let denom = 2.0 * a
                 [|
-                    (intermediate - b) / denom
-                    - (b + intermediate) / denom
+                    (intermediate - b) / 2.0
+                    - (b + intermediate) / 2.0
                 |]
             // Don't return anything that's behind us
             |> Array.filter (fun i -> Float.compare i 0.0 = Greater)

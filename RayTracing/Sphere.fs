@@ -2,46 +2,45 @@ namespace RayTracing
 
 open System
 
-type Sphere<'a> =
+type Sphere =
     {
-        Centre : Point<'a>
-        Radius : 'a
+        Centre : Point
+        Radius : float
         /// If an incoming ray has the given colour, and hits the
         /// given point (which is guaranteed to be on the surface),
         /// what colour ray does it output and in what direction?
-        Reflection : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> option * Pixel
+        Reflection : Ray -> Pixel -> Point -> Ray option * Pixel
     }
 
-type SphereStyle<'a> =
+type SphereStyle =
     /// An emitter of light.
     | LightSource of Pixel
     /// An absorbing black sphere, with a small light-emitting cap.
     | LightSourceCap of Pixel
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
-    | PureReflection of albedo : 'a * colour : Pixel
+    | PureReflection of albedo : float * colour : Pixel
     /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
-    | LambertReflection of albedo : 'a * colour : Pixel * Random
+    | LambertReflection of albedo : float * colour : Pixel * Random
 
 [<RequireQualifiedAccess>]
 module Sphere =
 
-    let normal<'a> (num : Num<'a>) (centre : Point<'a>) (p : Point<'a>) : Ray<'a> =
+    let normal (centre : Point) (p : Point) : Ray =
         {
             Origin = p
-            Vector = Point.difference num p centre
+            Vector = Point.difference p centre
         }
 
-    let reflection<'a>
-        (num : Num<'a>)
-        (style : SphereStyle<'a>)
-        (centre : Point<'a>)
-        (radius : 'a)
-        : Ray<'a> -> Pixel -> Point<'a> -> Ray<'a> option * Pixel
+    let reflection
+        (style : SphereStyle)
+        (centre : Point)
+        (radius : float)
+        : Ray -> Pixel -> Point -> Ray option * Pixel
         =
-        let normal = normal num centre
+        let normal = normal centre
         fun incomingRay incomingColour strikePoint ->
             let normal = normal strikePoint
 
@@ -52,12 +51,12 @@ module Sphere =
                 let circleCentreZCoord =
                     match centre with
                     | Point v -> Array.head v
-                let zCoordLowerBound = num.Add circleCentreZCoord (num.Subtract radius (num.DivideInteger radius 4))
+                let zCoordLowerBound = circleCentreZCoord + (radius - (radius / 4.0))
                 let strikeZCoord =
                     match strikePoint with
                     | Point v -> Array.head v
                 let colour =
-                    match num.Compare strikeZCoord zCoordLowerBound with
+                    match Float.compare strikeZCoord zCoordLowerBound with
                     | Greater ->
                         Pixel.combine colour incomingColour
                     | _ ->
@@ -70,64 +69,63 @@ module Sphere =
                         Origin = strikePoint
                         Vector =
                             let (Point centre) = centre
-                            let sphereCentre = Ray.walkAlong num normal num.One
-                            let offset = Vector.randomUnit num rand centre.Length
-                            let target = Ray.walkAlong num { Origin = sphereCentre ; Vector = offset } num.One
-                            Point.difference num target strikePoint
+                            let sphereCentre = Ray.walkAlong normal 1.0
+                            let offset = Vector.randomUnit rand centre.Length
+                            let target = Ray.walkAlong { Origin = sphereCentre ; Vector = offset } 1.0
+                            Point.difference target strikePoint
                     }
 
                 let newColour = Pixel.combine incomingColour colour
-                Some outgoing, Pixel.darken num newColour albedo
+                Some outgoing, Pixel.darken newColour albedo
 
             | SphereStyle.PureReflection (albedo, colour) ->
                 let plane =
                     Plane.makeSpannedBy normal incomingRay
-                    |> Plane.orthonormalise num
+                    |> Plane.orthonormalise
                 let outgoing =
                     match plane with
                     | None ->
                         // Incoming ray is directly along the normal
                         {
                             Origin = strikePoint
-                            Vector = incomingRay.Vector |> Vector.scale num (num.Negate num.One)
+                            Vector = incomingRay.Vector |> Vector.scale -1.0
                         }
                     | Some plane ->
                         // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
                         // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
-                        let normalComponent = (Vector.dot num plane.V1 incomingRay.Vector)
-                        let tangentComponent = num.Negate (Vector.dot num plane.V2 incomingRay.Vector)
+                        let normalComponent = Vector.dot plane.V1 incomingRay.Vector
+                        let tangentComponent = - (Vector.dot plane.V2 incomingRay.Vector)
                         {
                             Origin = strikePoint
                             Vector =
-                                Ray.walkAlong num { Origin = Ray.walkAlong num { Origin = plane.Point ; Vector = plane.V1 } normalComponent ; Vector = plane.V2 } tangentComponent
-                                |> Point.difference num strikePoint
+                                Ray.walkAlong { Origin = Ray.walkAlong { Origin = plane.Point ; Vector = plane.V1 } normalComponent ; Vector = plane.V2 } tangentComponent
+                                |> Point.difference strikePoint
                         }
 
                 let newColour = Pixel.combine incomingColour colour
-                let darkened = Pixel.darken num newColour albedo
+                let darkened = Pixel.darken newColour albedo
                 Some outgoing, darkened
 
-    let make<'a> (num : Num<'a>) (style : SphereStyle<'a>) (centre : Point<'a>) (radius : 'a) : Sphere<'a> =
+    let make (style : SphereStyle) (centre : Point) (radius : float) : Sphere =
         {
             Centre = centre
             Radius = radius
-            Reflection = reflection num style centre radius
+            Reflection = reflection style centre radius
         }
 
-    let liesOn<'a> (num : Num<'a>) (point : Point<'a>) (sphere : Sphere<'a>) : bool =
-        num.Equal (Vector.normSquared num (Point.difference num sphere.Centre point)) (num.Times sphere.Radius sphere.Radius)
+    let liesOn (point : Point) (sphere : Sphere) : bool =
+        Float.equal (Vector.normSquared (Point.difference sphere.Centre point)) (sphere.Radius * sphere.Radius)
 
     /// Returns the intersections of this ray with this sphere.
     /// The nearest intersection is returned first, if there are multiple.
     /// Does not return any intersections which are behind us.
     /// If the sphere is made of a material which does not re-emit light, you'll
     /// get a None for the outgoing ray.
-    let intersections<'a>
-        (num : Num<'a>)
-        (sphere : Sphere<'a>)
-        (ray : Ray<'a>)
+    let intersections
+        (sphere : Sphere)
+        (ray : Ray)
         (incomingColour : Pixel)
-        : (Point<'a> * Ray<'a> option * Pixel) array
+        : (Point * Ray option * Pixel) array
         =
         // The sphere is all points P such that Point.normSquared (P - sphere.Centre) = sphere.Radius^2
         // The ray is all ray.Origin + t ray.Vector for any t.
@@ -140,48 +138,45 @@ module Sphere =
         //     = 0
         // That is:
         let difference =
-            Point.difference num ray.Origin sphere.Centre
+            Point.difference ray.Origin sphere.Centre
 
-        let vector = ray.Vector |> Vector.unitise num |> Option.get
-        let a = Vector.normSquared num vector
+        let vector = ray.Vector |> Vector.unitise |> Option.get
+        let a = Vector.normSquared vector
 
-        let b =
-            num.Double (Vector.dot num vector difference)
+        let b = (Vector.dot vector difference) * 2.0
 
-        let c =
-            num.Subtract (Vector.normSquared num difference) (num.Times sphere.Radius sphere.Radius)
+        let c = (Vector.normSquared difference) - (sphere.Radius * sphere.Radius)
 
-        let discriminant =
-            num.Subtract (num.Times b b) (num.Double (num.Double (num.Times a c)))
+        let discriminant = (b * b) - (4.0 * a * c)
 
         let ts =
-            match num.Compare discriminant num.Zero with
+            match Float.compare discriminant 0.0 with
             | Comparison.Equal ->
                 [|
-                    num.Negate (num.Divide b (num.Double a))
+                    - (b / (2.0 * a))
                 |]
             | Comparison.Less -> [||]
             | Comparison.Greater ->
-                let intermediate = num.Sqrt discriminant
-                let denom = num.Double a
+                let intermediate = sqrt discriminant
+                let denom = 2.0 * a
                 [|
-                    num.Divide (num.Add (num.Negate b) intermediate) denom
-                    num.Divide (num.Add (num.Negate b) (num.Negate intermediate)) denom
+                    (intermediate - b) / denom
+                    - (b + intermediate) / denom
                 |]
             // Don't return anything that's behind us
-            |> Array.filter (fun i -> num.Compare i num.Zero = Greater)
+            |> Array.filter (fun i -> Float.compare i 0.0 = Greater)
         ts
         |> function
             | [||] -> [||]
             | [|x|] -> [|x|]
             | [|x ; y|] ->
-                match num.Compare x y with
+                match Float.compare x y with
                 | Less -> [|x ; y|]
                 | Equal -> failwith "Nooo"
                 | Greater -> [|y ; x|]
             | _ -> failwith "Impossible"
         |> Array.map (fun pos ->
-            let strikePoint = Ray.walkAlong num ray pos
+            let strikePoint = Ray.walkAlong ray pos
             let outgoing, colour = sphere.Reflection ray incomingColour strikePoint
             strikePoint, outgoing, colour
         )

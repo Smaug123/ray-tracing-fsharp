@@ -71,9 +71,10 @@ module Pixel =
             Blue = (int p1.Blue * int p2.Blue) / 255 |> byte
         }
 
-    let darken<'a> (num : Num<'a>) (p : Pixel) (albedo : 'a) : Pixel =
+    /// albedo should be between 0 and 1.
+    let darken (p : Pixel) (albedo : float) : Pixel =
         {
-            Red = num.TimesInteger (int p.Red) albedo |> num.Round |> byte
-            Green = num.TimesInteger (int p.Green) albedo |> num.Round |> byte
-            Blue = num.TimesInteger (int p.Blue) albedo |> num.Round |> byte
+            Red = (float p.Red) * albedo |> Math.Round |> byte
+            Green = (float p.Green) * albedo |> Math.Round |> byte
+            Blue = (float p.Blue) * albedo |> Math.Round |> byte
         }

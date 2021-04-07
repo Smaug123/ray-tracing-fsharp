@@ -5,9 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Rational.fs" />
-        <Compile Include="Algebraic.fs" />
-        <Compile Include="Num.fs" />
+        <Compile Include="Float.fs" />
         <Compile Include="Point.fs" />
         <Compile Include="Pixel.fs" />
         <Compile Include="Domain.fs" />

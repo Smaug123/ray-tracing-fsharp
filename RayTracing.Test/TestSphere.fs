@@ -9,33 +9,31 @@ module TestSphere =
 
     [<Test>]
     let ``Point at distance r from centre lies on sphere`` () =
-        let property (centre : Point<float>, radius : float, point : Point<float>) : bool =
+        let property (centre : Point, radius : float, point : Point) : bool =
             let radius = abs radius
-            let sphere = Sphere.make Num.float (SphereStyle.PureReflection (1.0, Colour.White)) centre radius
-            Sphere.liesOn Num.float point sphere
+            let sphere = Sphere.make (SphereStyle.PureReflection (1.0, Colour.White)) centre radius
+            Sphere.liesOn point sphere
 
 
-        let gen : Gen<Point<float> * float * Point<float>> =
+        let gen : Gen<Point * float * Point> =
             gen {
                 let! centre = TestUtils.pointGen
                 let! radius = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
                 let! theta =
                     Arb.generate<NormalFloat>
                     |> Gen.map NormalFloat.op_Explicit
-                    |> Gen.map Radian
                 let! phi =
                     Arb.generate<NormalFloat>
                     |> Gen.map NormalFloat.op_Explicit
-                    |> Gen.map Radian
 
                 let surfacePoint =
                     [|
-                        radius * Num.float.Cos phi * Num.float.Sin theta
-                        radius * Num.float.Sin phi * Num.float.Sin theta
-                        radius * Num.float.Cos theta
+                        radius * cos phi * sin theta
+                        radius * sin phi * sin theta
+                        radius * cos theta
                     |]
                     |> Point
-                    |> Point.difference Num.float centre
+                    |> Point.difference centre
                     |> fun (Vector v) -> Point v
                 return centre, radius, surfacePoint
             }

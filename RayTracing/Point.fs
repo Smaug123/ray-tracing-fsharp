@@ -92,28 +92,11 @@ module Point =
             |> Array.map (fun (a, b) -> a - b)
             |> Vector
 
-    let sum (p1 : Point) (p2 : Point) : Point =
-        match p1, p2 with
-        | Point p1, Point p2 ->
-            Array.zip p1 p2
-            |> Array.map (fun (a, b) -> a + b)
-            |> Point
-
-    let normSquared (p : Point) : float =
-        match p with
-        | Point p ->
-            p
-            |> Array.fold (fun s p -> (p * p) + s) 0.0
-
     let equal (p1 : Point) (p2 : Point) : bool =
         match p1, p2 with
         | Point p1, Point p2 ->
-            Array.zip p1 p2
-            |> Array.forall (fun (a, b) -> Float.equal a b)
+            let rec go (i : int) : bool =
+                if i >= p1.Length then true else
+                if Float.equal p1.[i] p2.[i] then go (i + 1) else false
 
-    let add (v1 : Point) (v2 : Point) : Point =
-        match v1, v2 with
-        | Point v1, Point v2 ->
-            Array.zip v1 v2
-            |> Array.map (fun (a, b) -> a + b)
-            |> Point
+            go 0

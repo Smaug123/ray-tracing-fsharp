@@ -23,12 +23,9 @@ module TestRay =
             let origin2 =
                 [| origin2X; origin2Y; origin2Z |] |> Point
 
-            let ray = Ray.make origin1 vector
-            let ray2 = Ray.make origin2 vector
-            let output = Ray.walkAlong ray magnitude
+            let output = Ray.walkAlong (Ray.make origin1 vector) magnitude
 
-            let output2 =
-                Ray.walkAlong ray2 magnitude
+            let output2 = Ray.walkAlong (Ray.make origin2 vector) magnitude
 
             let actual =
                 Point.difference output output2

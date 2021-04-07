@@ -91,7 +91,8 @@ module InfinitePlane =
                         // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
                         let normalComponent = (UnitVector.dot plane.V1 (Ray.vector incomingRay))
                         let tangentComponent = - (UnitVector.dot plane.V2 (Ray.vector incomingRay))
-                        Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2) tangentComponent
+                        tangentComponent
+                        |> Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2)
                         |> Point.difference strikePoint
                         |> Ray.make' strikePoint
 

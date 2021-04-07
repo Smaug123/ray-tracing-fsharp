@@ -118,16 +118,6 @@ module Sphere =
         (incomingColour : Pixel)
         : (Point * Ray option * Pixel) array
         =
-        // The sphere is all points P such that Point.normSquared (P - sphere.Centre) = sphere.Radius^2
-        // The ray is all ray.Origin + t ray.Vector for any t.
-        // So the intersection is all P such that
-        //     Point.normSquared (ray.Origin + t ray.Vector - sphere.Centre) = sphere.Radius^2
-        // Simplified,
-        //     t^2 Point.normSquared ray.Vector
-        //       + 2 t Vector.dot ray.Vector (ray.Origin - sphere.Centre)
-        //       + Point.normSquared (ray.Origin - sphere.Centre) - sphere.Radius^2
-        //     = 0
-        // That is:
         let difference =
             Point.difference (Ray.origin ray) sphere.Centre
 

@@ -2,6 +2,9 @@ namespace RayTracing
 
 open System
 
+[<Measure>]
+type albedo
+
 [<Struct>]
 type Pixel =
     {
@@ -42,6 +45,12 @@ module Colour =
             Green = 0uy
             Blue = 255uy
         }
+    let Yellow =
+        {
+            Red = 255uy
+            Green = 255uy
+            Blue = 0uy
+        }
 
 [<RequireQualifiedAccess>]
 module Pixel =
@@ -68,7 +77,8 @@ module Pixel =
         }
 
     /// albedo should be between 0 and 1.
-    let darken (p : Pixel) (albedo : float) : Pixel =
+    let darken (p : Pixel) (albedo : float<albedo>) : Pixel =
+        let albedo = albedo / 1.0<albedo>
         {
             Red = (float p.Red) * albedo |> Math.Round |> byte
             Green = (float p.Green) * albedo |> Math.Round |> byte

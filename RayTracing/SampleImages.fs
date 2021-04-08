@@ -5,11 +5,20 @@ open System
 type SampleImages =
     | Gradient
     | Spheres
+    | ShinyFloor
+    | FuzzyFloor
+    static member Parse (s : string) =
+        match s with
+        | "spheres" -> SampleImages.Spheres
+        | "gradient" -> SampleImages.Gradient
+        | "shiny-floor" -> SampleImages.ShinyFloor
+        | "fuzzy-floor" -> SampleImages.FuzzyFloor
+        | s -> failwithf "Unrecognised arg: %s" s
 
 [<RequireQualifiedAccess>]
 module SampleImages =
 
-    let gradient (progressIncrement : float<progress> -> unit) : float<progress> * Image Async =
+    let gradient (progressIncrement : float<progress> -> unit) : float<progress> * Image =
         let pixelAt height width =
             {
                 Red = (byte width)
@@ -18,48 +27,84 @@ module SampleImages =
             }
 
         256.0<progress>,
-        async {
-            return
+        {
+            RowCount = 256
+            ColCount = 256
+            Rows =
                 Array.init
                     256
                     (fun height ->
-                        let output = Array.init 256 (pixelAt height)
+                        let output = Array.init 256 (fun i -> async { return pixelAt height i })
                         progressIncrement 1.0<progress>
                         output
                     )
-                |> Image
         }
 
-    let spheres (progressIncrement : float<progress> -> unit) : float<progress> * Image Async =
-        let random = Random ()
+    let shinyPlane (progressIncrement : float<progress> -> unit) : float<progress> * Image =
         let aspectRatio = 16.0 / 9.0
+        let origin = Point [| 0.0 ; 0.0 ; 0.0 |]
         let camera =
-            Camera.makeBasic 4.0 aspectRatio (Point [| 0.0 ; 0.0 ; 0.0 |])
-        let pixels = 200
+            Camera.makeBasic 2.0 aspectRatio origin (Vector [| 0.0 ; 0.0 ; 1.0 |] |> Vector.unitise |> Option.get)
+        let pixels = 400
         {
             Objects =
                 [|
-                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random)) (Point [| 0.0 ; 0.0 ; 9.0 |]) 1.0)
-                    Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0, { Red = 0uy ; Green = 255uy ; Blue = 255uy })) (Point [| 1.5 ; 0.5 ; 8.0 |]) 0.5)
-                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource Colour.Blue) (Point [| -1.5 ; 1.5 ; 8.0 |]) 0.5)
-
-                    // Side mirror
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (1.0, { Colour.White with Green = 240uy })) (Point [| 0.1 ; 0.0 ; 16.0 |]) (Vector [| -2.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
-
-                    // Floor mirror
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.4, Colour.White)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |] |> Vector.unitise |> Option.get))
-
-                    // Back plane
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.6, Colour.White)) (Point [| 0.0 ; 0.0 ; 16.0 |]) (Vector [| 0.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
-
-                    // Light pad behind us
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource Colour.White) (Point [| 0.0 ; 1.0 ; -1.0 |]) (Vector [| 0.0 ; -1.0 ; 1.0 |] |> Vector.unitise |> Option.get))
+                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 0uy ; Green = 255uy ; Blue = 255uy }) (Point [| 1.5 ; 0.5 ; 8.0 |]) 0.5)
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.5<albedo>, Colour.White)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |] |> Vector.unitise |> Option.get)) // Floor rug
                 |]
         }
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
-    let get (s : SampleImages) : (float<progress> -> unit) -> float<progress> * Image Async =
+    let fuzzyPlane (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+        let random = Random ()
+        let aspectRatio = 16.0 / 9.0
+        let origin = Point [| 0.0 ; 0.0 ; 0.0 |]
+        let camera =
+            Camera.makeBasic 2.0 aspectRatio origin (Vector [| 0.0 ; 0.0 ; 1.0 |] |> Vector.unitise |> Option.get)
+        let pixels = 400
+        {
+            Objects =
+                [|
+                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 0uy ; Green = 255uy ; Blue = 255uy }) (Point [| 1.5 ; 0.5 ; 8.0 |]) 0.5)
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzyReflection (1.0<albedo>, Colour.White, 0.75<fuzz>, random)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |] |> Vector.unitise |> Option.get)) // Floor rug
+                |]
+        }
+        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+
+    let spheres (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+        let random = Random ()
+        let aspectRatio = 16.0 / 9.0
+        let origin = Point [| 0.0 ; 0.0 ; 0.0 |]
+        let camera =
+            Camera.makeBasic 7.0 aspectRatio origin (Vector [| 0.0 ; 0.0 ; 1.0 |] |> Vector.unitise |> Option.get)
+        let pixels = 2800
+        {
+            Objects =
+                [|
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.8<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random)) (Point [| 0.0 ; 0.0 ; 9.0 |]) 1.0)
+                    Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 0uy ; Green = 255uy ; Blue = 255uy })) (Point [| 1.5 ; 0.5 ; 8.0 |]) 0.5)
+                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Colour.White with Red = 200uy ; Green = 220uy } ) (Point [| -1.5 ; 1.0 ; 8.0 |]) 0.5)
+                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (0.1<fuzz>, random, 1.0<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 0uy }) ) (Point [| -0.4 ; 1.5 ; 10.0 |]) 0.25)
+
+                    // Left side mirror
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.8<albedo>, Colour.White)) (Point [| 0.0 ; 0.0 ; 12.0 |]) (Vector [| 1.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
+
+                    // Floor rug
+                    // Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzyReflection (0.6<albedo>, Colour.White, 0.8<fuzz>, random)) (Point [| 0.0 ; 5.0 ; 0.0 |]) (Vector [| 0.0 ; -1.0 ; 0.0 |] |> Vector.unitise |> Option.get)) // Floor rug
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzyReflection (0.75<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 100uy }, 0.8<fuzz>, random)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |] |> Vector.unitise |> Option.get))
+
+                    // Right side mirror
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.8<albedo>, Colour.White)) (Point [| 0.0 ; 0.0 ; 12.0 |]) (Vector [| -1.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
+
+                    // Light pad behind us
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource { Red = 5uy ; Green = 5uy ; Blue = 5uy }) (Point [| 0.0 ; 1.0 ; -1.0 |]) (Vector [| 0.0 ; 0.0 ; 1.0 |] |> Vector.unitise |> Option.get))
+                |]
+        }
+        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+
+    let get (s : SampleImages) : (float<progress> -> unit) -> float<progress> * Image =
         match s with
         | Gradient -> gradient
         | Spheres -> spheres
-
+        | ShinyFloor -> shinyPlane
+        | FuzzyFloor -> fuzzyPlane

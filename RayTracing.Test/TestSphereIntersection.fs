@@ -28,7 +28,7 @@ module TestSphereIntersection =
             )
             &&
             intersections
-            |> Array.map (fun (intersection, _, _) -> Vector.normSquared (Point.difference (Ray.origin ray) intersection))
+            |> Array.map (fun (intersection, _, _) -> Vector.normSquared (Point.difference { ComeFrom = Ray.origin ray ; EndUpAt = intersection }))
             |> Seq.pairwise
             |> Seq.forall (fun (i, j) -> Float.compare i j = Less)
 
@@ -41,12 +41,12 @@ module TestSphereIntersection =
         let ray =
             Ray.make' (Point [|1.462205539; -4.888279676; 7.123293244|]) (Vector [|-9.549697616; 4.400018428; 10.41024923|])
             |> Option.get
-        let sphere = Sphere.make (SphereStyle.PureReflection (1.0, Colour.White)) (Point [|-5.688391601; -5.360125644; 9.074300761|]) 8.199747973
+        let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Colour.White)) (Point [|-5.688391601; -5.360125644; 9.074300761|]) 8.199747973
 
         let intersections = Sphere.intersections sphere ray Colour.White
 
         intersections
-        |> Array.map (fun (intersection, _, _) -> Vector.normSquared (Point.difference (Ray.origin ray) intersection))
+        |> Array.map (fun (intersection, _, _) -> Vector.normSquared (Point.difference { ComeFrom = Ray.origin ray ; EndUpAt = intersection }))
         |> Seq.pairwise
         |> Seq.forall (fun (i, j) -> Float.compare i j = Less)
         |> shouldEqual true

@@ -7,11 +7,12 @@ type InfinitePlaneStyle =
     | LightSource of Pixel
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
-    | PureReflection of albedo : float * colour : Pixel
+    | PureReflection of albedo : float<albedo> * colour : Pixel
     /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
-    | LambertReflection of albedo : float * colour : Pixel * Random
+    | LambertReflection of albedo : float<albedo> * colour : Pixel * Random
+    | FuzzyReflection of albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * Random
 
 type InfinitePlane =
     {
@@ -43,8 +44,7 @@ module InfinitePlane =
         let denominator = UnitVector.dot plane.Normal rayVec
         if Float.equal denominator 0.0 then [||]
         else
-            // TODO I flipped the args in this dot
-            let t = (UnitVector.dot' plane.Normal (Point.difference plane.Point (Ray.origin ray))) / denominator
+            let t = (UnitVector.dot' plane.Normal (Point.difference { EndUpAt = plane.Point ; ComeFrom = Ray.origin ray })) / denominator
             match Float.compare t 0.0 with
             | Greater ->
                 let strikePoint = Ray.walkAlong ray t
@@ -59,23 +59,7 @@ module InfinitePlane =
         : Ray -> Pixel -> Point -> Ray option * Pixel
         =
         fun incomingRay incomingColour strikePoint ->
-            match style with
-            | InfinitePlaneStyle.LightSource colour ->
-                None, Pixel.combine incomingColour colour
-
-            | InfinitePlaneStyle.LambertReflection (albedo, colour, rand) ->
-                let outgoing =
-                    let (Point pointOnPlane) = pointOnPlane
-                    let sphereCentre = Ray.walkAlong (Ray.make strikePoint normal) 1.0
-                    let offset = UnitVector.random rand pointOnPlane.Length
-                    let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
-                    Point.difference target strikePoint
-                    |> Ray.make' strikePoint
-
-                let newColour = Pixel.combine incomingColour colour
-                outgoing, Pixel.darken newColour albedo
-
-            | InfinitePlaneStyle.PureReflection (albedo, colour) ->
+            let fuzzIt albedo colour (fuzz : (float<fuzz> * Random) option) =
                 let plane =
                     Plane.makeSpannedBy (Ray.make strikePoint normal) incomingRay
                     |> Plane.orthonormalise
@@ -89,16 +73,49 @@ module InfinitePlane =
                     | Some plane ->
                         // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
                         // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
-                        let normalComponent = (UnitVector.dot plane.V1 (Ray.vector incomingRay))
-                        let tangentComponent = - (UnitVector.dot plane.V2 (Ray.vector incomingRay))
-                        tangentComponent
-                        |> Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2)
-                        |> Point.difference strikePoint
+                        let normalComponent = - (UnitVector.dot plane.V1 (Ray.vector incomingRay))
+                        let tangentComponent = (UnitVector.dot plane.V2 (Ray.vector incomingRay))
+                        let s =
+                            tangentComponent
+                            |> Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2)
+                        Point.difference { EndUpAt = s ; ComeFrom = strikePoint }
+                        |> Ray.make' strikePoint
+
+                let outgoing =
+                    match outgoing, fuzz with
+                    | None, _ -> None
+                    | Some outgoing, None -> Some outgoing
+                    | Some outgoing, Some (fuzz, rand) ->
+                        let offset = UnitVector.random rand (Point.dimension pointOnPlane)
+                        let sphereCentre = Ray.walkAlong outgoing 1.0
+                        let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
+                        Point.difference { EndUpAt = target ; ComeFrom = strikePoint }
                         |> Ray.make' strikePoint
 
                 let newColour = Pixel.combine incomingColour colour
                 let darkened = Pixel.darken newColour albedo
                 outgoing, darkened
+
+            match style with
+            | InfinitePlaneStyle.LightSource colour ->
+                None, Pixel.combine incomingColour colour
+
+            | InfinitePlaneStyle.FuzzyReflection (albedo, colour, fuzz, rand) ->
+                fuzzIt albedo colour (Some (fuzz, rand))
+
+            | InfinitePlaneStyle.LambertReflection (albedo, colour, rand) ->
+                let outgoing =
+                    let sphereCentre = Ray.walkAlong (Ray.make strikePoint normal) 1.0
+                    let offset = UnitVector.random rand (Point.dimension pointOnPlane)
+                    let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
+                    Point.difference { EndUpAt = target ; ComeFrom = strikePoint }
+                    |> Ray.make' strikePoint
+
+                let newColour = Pixel.combine incomingColour colour
+                outgoing, Pixel.darken newColour albedo
+
+            | InfinitePlaneStyle.PureReflection (albedo, colour) ->
+                fuzzIt albedo colour None
 
 
     let make (style : InfinitePlaneStyle) (pointOnPlane : Point) (normal : UnitVector) : InfinitePlane =

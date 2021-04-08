@@ -18,20 +18,18 @@ module Program =
             |> fun s -> fs.Path.ChangeExtension (s, ".ppm")
             |> fs.FileInfo.FromFileName
 
-        let task = ctx.AddTask "[green]Generating image[/]"
+        let task = ctx.AddTask "[green]Generating and writing image[/]"
         let maxProgress, image = SampleImages.get sample task.Increment
         task.MaxValue <- maxProgress / 1.0<progress>
 
-        let image = image |> Async.RunSynchronously
+        let _, writer, await = ImageOutput.toPpm ignore image fs
+        printfn "Temporary output being written eagerly to '%s'" writer.FullName
 
-        let outputTask = ctx.AddTask "[green]Writing image[/]"
-
-        let maxProgress, writer =
-            ImageOutput.toPpm outputTask.Increment image output
-
-        outputTask.MaxValue <- maxProgress / 1.0<progress>
-
-        writer |> Async.RunSynchronously
+        async {
+            do! await
+            return! ImageOutput.convert writer output
+        }
+        |> Async.RunSynchronously
 
         printfn "%s" output.FullName
 
@@ -40,10 +38,7 @@ module Program =
         let sample =
             argv
             |> Array.exactlyOne
-            |> function
-                | "spheres" -> SampleImages.Spheres
-                | "gradient" -> SampleImages.Gradient
-                | s -> failwithf "Unrecognised arg: %s" s
+            |> SampleImages.Parse
 
         let prog =
             AnsiConsole

@@ -11,7 +11,7 @@ module TestSphere =
     let ``Point at distance r from centre lies on sphere`` () =
         let property (centre : Point, radius : float, point : Point) : bool =
             let radius = abs radius
-            let sphere = Sphere.make (SphereStyle.PureReflection (1.0, Colour.White)) centre radius
+            let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Colour.White)) centre radius
             Sphere.liesOn point sphere
 
 
@@ -33,8 +33,7 @@ module TestSphere =
                         radius * cos theta
                     |]
                     |> Point
-                    |> Point.difference centre
-                    |> fun (Vector v) -> Point v
+                    |> fun p -> Point.sum centre p
                 return centre, radius, surfacePoint
             }
 

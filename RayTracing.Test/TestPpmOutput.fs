@@ -18,25 +18,23 @@ module TestRayTracing =
         let image =
             [|
                 [|
-                    { Red = 255uy; Blue = 0uy; Green = 0uy }
-                    { Red = 0uy; Blue = 0uy; Green = 255uy }
-                    { Red = 0uy; Blue = 255uy; Green = 0uy }
+                    async { return Colour.Red }
+                    async { return Colour.Green }
+                    async { return Colour.Blue }
                 |]
                 [|
-                    {
-                        Red = 255uy
-                        Blue = 0uy
-                        Green = 255uy
+                    async {
+                        return {
+                            Red = 255uy
+                            Blue = 0uy
+                            Green = 255uy
+                        }
                     }
-                    {
-                        Red = 255uy
-                        Blue = 255uy
-                        Green = 255uy
-                    }
-                    { Red = 0uy; Blue = 0uy; Green = 0uy }
+                    async { return Colour.Black }
+                    async { return Colour.White }
                 |]
             |]
-            |> Image
+            |> Image.make
 
         let outputFile =
             fs.Path.GetTempFileName ()

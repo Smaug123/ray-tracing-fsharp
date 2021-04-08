@@ -38,7 +38,7 @@ module Scene =
         =
         s.Objects
         |> Array.choose (Hittable.hits ray colour)
-        |> Float.sortInPlaceBy (fun (a, _, _) -> Vector.normSquared (Point.difference a (Ray.origin ray)))
+        |> Float.sortInPlaceBy (fun (a, _, _) -> Vector.normSquared (Point.difference { EndUpAt = a ; ComeFrom = Ray.origin ray }))
 
     let internal traceRay
         (maxCount : int)
@@ -65,50 +65,61 @@ module Scene =
 
         go 0 ray colour
 
+    let renderPixel (scene : Scene) (rand : Random) (camera : Camera) maxWidthCoord maxHeightCoord row col =
+        // Where does this pixel correspond to, on the imaginary canvas?
+        // For the early prototype, we'll just take the upper right quadrant
+        // from the camera.
+        let pixels =
+            Array.init camera.SamplesPerPixel (fun _ ->
+                // TODO make this be deterministic
+                let rand1 = Float.random rand
+                let landingPoint =
+                    ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
+                let pointOnXAxis =
+                    landingPoint
+                    |> Ray.walkAlong camera.ViewportXAxis
+                let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
+                let rand2 = Float.random rand
+                let endPoint =
+                    ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
+                    |> Ray.walkAlong toWalkUp
+                let ray =
+                    Ray.make' (Ray.origin camera.View) (Point.difference { ComeFrom = Ray.origin camera.View ; EndUpAt = endPoint })
+                    |> Option.get
+
+                let result = traceRay 150 scene ray Colour.White
+                result
+            )
+
+        Pixel.average pixels
+
     let render
         (progressIncrement : float<progress> -> unit)
         (maxWidthCoord : int)
         (maxHeightCoord : int)
         (camera : Camera)
         (s : Scene)
-        : float<progress> * Image Async
+        : float<progress> * Image
         =
         let rand = Random ()
         // For each pixel in the output, send a ray from the camera
         // in the direction of that pixel.
         let rowsIter = 2 * maxHeightCoord + 1
         let colsIter = 2 * maxWidthCoord + 1
-        1.0<progress> * float (rowsIter * colsIter), async {
-            return
+        1.0<progress> * float (rowsIter * colsIter),
+        {
+            RowCount = rowsIter
+            ColCount = colsIter
+            Rows =
                 Array.init rowsIter (fun row ->
                     let row = row - maxHeightCoord
-                    Array.Parallel.init colsIter (fun col ->
+                    Array.init colsIter (fun col ->
                         let col = col - maxWidthCoord
-                        // Where does this pixel correspond to, on the imaginary canvas?
-                        // For the early prototype, we'll just take the upper right quadrant
-                        // from the camera.
-                        let ret =
-                            Array.init camera.SamplesPerPixel (fun _ ->
-                                // TODO make this be deterministic
-                                let pointOnXAxis =
-                                    ((float col * camera.ViewportWidth) + (Float.random rand)) / float maxWidthCoord
-                                    |> Ray.walkAlong camera.ViewportXAxis
-                                let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
-                                let endPoint =
-                                    ((float row * camera.ViewportHeight) + (Float.random rand)) / float maxHeightCoord
-                                    |> Ray.walkAlong toWalkUp
-                                let ray =
-                                    Ray.between (Ray.origin camera.View) endPoint
-                                    |> Option.get
-
-                                let result = traceRay 50 s ray Colour.White
-                                result
-                            )
-                            |> Pixel.average
-                        progressIncrement 1.0<progress>
-                        ret
+                        async {
+                            let ret = renderPixel s rand camera maxWidthCoord maxHeightCoord row col
+                            progressIncrement 1.0<progress>
+                            return ret
+                        }
                     )
                 )
-                |> Array.rev
-                |> Image
         }

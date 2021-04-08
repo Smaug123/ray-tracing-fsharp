@@ -34,9 +34,6 @@ module Ray =
         )
         |> Point
 
-    let between (p1 : Point) (p2 : Point) : Ray option =
-        make' p1 (Point.difference p2 p1)
-
     let parallelTo (p1 : Point) (ray : Ray) : Ray =
         {
             Vector = ray.Vector

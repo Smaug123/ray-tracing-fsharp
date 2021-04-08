@@ -2,6 +2,9 @@ namespace RayTracing
 
 open System
 
+[<Measure>]
+type fuzz
+
 type Sphere =
     {
         Centre : Point
@@ -19,17 +22,21 @@ type SphereStyle =
     | LightSourceCap of Pixel
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
-    | PureReflection of albedo : float * colour : Pixel
+    | PureReflection of albedo : float<albedo> * colour : Pixel
+    /// Perfect reflection, as you would see from a smooth flat metal surface.
+    /// Albedo must be between 0 and 1.
+    /// Fuzz must be between 0 (no fuzziness) and 1 (lots of fuzziness)
+    | FuzzedReflection of fuzz : float<fuzz> * Random * albedo : float<albedo> * colour : Pixel
     /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
-    | LambertReflection of albedo : float * colour : Pixel * Random
+    | LambertReflection of albedo : float<albedo> * colour : Pixel * Random
 
 [<RequireQualifiedAccess>]
 module Sphere =
 
     let normal (centre : Point) (p : Point) : Ray =
-        Ray.make' p (Point.difference p centre)
+        Ray.make' p (Point.difference { EndUpAt = p ; ComeFrom = centre })
         |> Option.get
 
     let reflection
@@ -41,6 +48,41 @@ module Sphere =
         let normal = normal centre
         fun incomingRay incomingColour strikePoint ->
             let normal = normal strikePoint
+
+            let fuzzedReflection (colour : Pixel) (albedo : float<albedo>) (fuzz : (float<fuzz> * Random) option) =
+                let plane =
+                    Plane.makeSpannedBy normal incomingRay
+                    |> Plane.orthonormalise
+                let outgoing =
+                    match plane with
+                    | None ->
+                        // Incoming ray is directly along the normal
+                        Ray.flip incomingRay
+                        |> Ray.parallelTo strikePoint
+                        |> Some
+                    | Some plane ->
+                        // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
+                        // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
+                        let normalComponent = - UnitVector.dot plane.V1 (Ray.vector incomingRay)
+                        let tangentComponent = (UnitVector.dot plane.V2 (Ray.vector incomingRay))
+                        let dest = Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2) tangentComponent
+                        Point.difference { ComeFrom = strikePoint ; EndUpAt = dest }
+                        |> Ray.make' strikePoint
+
+                let outgoing =
+                    match outgoing, fuzz with
+                    | None, _ -> None
+                    | Some outgoing, None -> Some outgoing
+                    | Some outgoing, Some (fuzz, rand) ->
+                        let offset = UnitVector.random rand (Point.dimension centre)
+                        let sphereCentre = Ray.walkAlong outgoing 1.0
+                        let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
+                        Point.difference { ComeFrom = strikePoint ; EndUpAt = target }
+                        |> Ray.make' strikePoint
+
+                let newColour = Pixel.combine incomingColour colour
+                let darkened = Pixel.darken newColour albedo
+                outgoing, darkened
 
             match style with
             | SphereStyle.LightSource colour ->
@@ -63,39 +105,19 @@ module Sphere =
 
             | SphereStyle.LambertReflection (albedo, colour, rand) ->
                 let outgoing =
-                    let (Point centre) = centre
                     let sphereCentre = Ray.walkAlong normal 1.0
-                    let offset = UnitVector.random rand centre.Length
+                    let offset = UnitVector.random rand (Point.dimension sphereCentre)
                     let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
-                    Point.difference target strikePoint
+                    Point.difference { EndUpAt = target ; ComeFrom = strikePoint }
                     |> Ray.make' strikePoint
 
                 let newColour = Pixel.combine incomingColour colour
                 outgoing, Pixel.darken newColour albedo
 
             | SphereStyle.PureReflection (albedo, colour) ->
-                let plane =
-                    Plane.makeSpannedBy normal incomingRay
-                    |> Plane.orthonormalise
-                let outgoing =
-                    match plane with
-                    | None ->
-                        // Incoming ray is directly along the normal
-                        Ray.flip incomingRay
-                        |> Ray.parallelTo strikePoint
-                        |> Some
-                    | Some plane ->
-                        // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
-                        // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
-                        let normalComponent = UnitVector.dot plane.V1 (Ray.vector incomingRay)
-                        let tangentComponent = - (UnitVector.dot plane.V2 (Ray.vector incomingRay))
-                        Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2) tangentComponent
-                        |> Point.difference strikePoint
-                        |> Ray.make' strikePoint
-
-                let newColour = Pixel.combine incomingColour colour
-                let darkened = Pixel.darken newColour albedo
-                outgoing, darkened
+                fuzzedReflection colour albedo None
+            | SphereStyle.FuzzedReflection (fuzz, random, albedo, colour) ->
+                fuzzedReflection colour albedo (Some (fuzz, random))
 
     let make (style : SphereStyle) (centre : Point) (radius : float) : Sphere =
         {
@@ -105,7 +127,7 @@ module Sphere =
         }
 
     let liesOn (point : Point) (sphere : Sphere) : bool =
-        Float.equal (Vector.normSquared (Point.difference sphere.Centre point)) (sphere.Radius * sphere.Radius)
+        Float.equal (Vector.normSquared (Point.difference { ComeFrom = sphere.Centre ; EndUpAt = point })) (sphere.Radius * sphere.Radius)
 
     /// Returns the intersections of this ray with this sphere.
     /// The nearest intersection is returned first, if there are multiple.
@@ -119,7 +141,7 @@ module Sphere =
         : (Point * Ray option * Pixel) array
         =
         let difference =
-            Point.difference (Ray.origin ray) sphere.Centre
+            Point.difference { EndUpAt = Ray.origin ray ; ComeFrom = sphere.Centre }
 
         let b = (UnitVector.dot' (Ray.vector ray) difference) * 2.0
 

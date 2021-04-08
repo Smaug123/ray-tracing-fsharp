@@ -28,10 +28,10 @@ module TestRay =
             let output2 = Ray.walkAlong (Ray.make origin2 vector) magnitude
 
             let actual =
-                Point.difference output output2
+                Point.difference { EndUpAt = output ; ComeFrom = output2 }
 
             let expected =
-                Point.difference origin1 origin2
+                Point.difference { EndUpAt = origin1 ; ComeFrom = origin2 }
 
             Vector.equal actual expected
 
@@ -50,7 +50,7 @@ module TestRay =
     let ``walkAlong walks the right distance`` () =
         let property (ray : Ray, distance : float) =
             let walked = Ray.walkAlong ray distance
-            Point.difference walked (Ray.origin ray)
+            Point.difference { EndUpAt = walked ; ComeFrom = Ray.origin ray }
             |> Vector.normSquared
             |> Float.equal (distance * distance)
 

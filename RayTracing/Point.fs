@@ -83,9 +83,26 @@ module UnitVector =
             |> UnitVector
         )
 
+type Difference =
+    {
+        EndUpAt : Point
+        ComeFrom : Point
+    }
+
 [<RequireQualifiedAccess>]
 module Point =
-    let difference (p1 : Point) (p2 : Point) : Vector =
+
+    let inline dimension (Point p) = p.Length
+
+    let sum (p1 : Point) (p2 : Point) : Point =
+        match p1, p2 with
+        | Point p1, Point p2 ->
+            Array.init p1.Length (fun i ->
+                p1.[i] + p2.[i]
+            )
+            |> Point
+
+    let difference { EndUpAt = p1 ; ComeFrom = p2 } : Vector =
         match p1, p2 with
         | Point p1, Point p2 ->
             Array.init p1.Length (fun i ->

@@ -16,8 +16,12 @@ module Float =
     let inline equal (a : float) (b : float) : bool =
         abs (a - b) < tolerance
 
+    let lockObj = obj ()
     let inline random (rand : Random) : float =
-        float (abs (rand.Next ())) / float Int32.MaxValue
+        let rand = lock lockObj (fun () ->
+            rand.Next ()
+        )
+        float (abs rand) / float Int32.MaxValue
 
     let inline compare (a : float) (b : float) : Comparison =
         if abs (a - b) < tolerance then Comparison.Equal

@@ -18,18 +18,20 @@ module Program =
             |> fun s -> fs.Path.ChangeExtension (s, ".ppm")
             |> fs.FileInfo.FromFileName
 
-        let renderTask = ctx.AddTask "[green]Generating and writing image[/]"
+        let renderTask = ctx.AddTask "[green]Generating image[/]"
+        let writeUnorderedTask = ctx.AddTask "[green]Writing unordered pixels[/]"
         let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
         let arrangeTask = ctx.AddTask "[green]Rearranging pixels into correct order[/]"
         let writeTask = ctx.AddTask "[green]Writing PPM file[/]"
 
         let maxProgress, image = SampleImages.get sample renderTask.Increment
         renderTask.MaxValue <- maxProgress / 1.0<progress>
+        writeUnorderedTask.MaxValue <- maxProgress / 1.0<progress>
         readTask.MaxValue <- maxProgress / 1.0<progress>
         arrangeTask.MaxValue <- maxProgress / 1.0<progress>
         writeTask.MaxValue <- maxProgress / 1.0<progress>
 
-        let _, tempOutput, await = ImageOutput.toPpm ignore image fs
+        let tempOutput, await = ImageOutput.toPpm writeUnorderedTask.Increment image fs
         AnsiConsole.WriteLine (sprintf "Temporary output being written eagerly to '%s'" tempOutput.FullName)
 
         async {

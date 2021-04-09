@@ -27,12 +27,10 @@ module TestSphere =
                     |> Gen.map NormalFloat.op_Explicit
 
                 let surfacePoint =
-                    [|
-                        radius * cos phi * sin theta
-                        radius * sin phi * sin theta
-                        radius * cos theta
-                    |]
-                    |> Point
+                    Point.make
+                        (radius * cos phi * sin theta)
+                        (radius * sin phi * sin theta)
+                        (radius * cos theta)
                     |> fun p -> Point.sum centre p
                 return centre, radius, surfacePoint
             }

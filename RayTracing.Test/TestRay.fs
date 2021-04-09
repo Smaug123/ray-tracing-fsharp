@@ -18,10 +18,10 @@ module TestRay =
             )
             : bool
             =
-            let origin1 = [| originX; originY; originZ |] |> Point
+            let origin1 = Point.make originX originY originZ
 
             let origin2 =
-                [| origin2X; origin2Y; origin2Z |] |> Point
+                Point.make origin2X origin2Y origin2Z
 
             let output = Ray.walkAlong (Ray.make origin1 vector) magnitude
 

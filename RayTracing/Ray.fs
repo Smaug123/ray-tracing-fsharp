@@ -26,13 +26,10 @@ module Ray =
         }
 
     let walkAlong (ray : Ray) (magnitude : float) : Point =
-        let (Point origin) = ray.Origin
-        let (UnitVector (Vector vector)) = ray.Vector
+        let (Point (oX, oY, oZ)) = ray.Origin
+        let (UnitVector (Vector (vX, vY, vZ))) = ray.Vector
 
-        Array.init origin.Length (fun i ->
-            origin.[i] + (vector.[i] * magnitude)
-        )
-        |> Point
+        Point.make (oX + (vX * magnitude)) (oY + (vY * magnitude)) (oZ + (vZ * magnitude))
 
     let parallelTo (p1 : Point) (ray : Ray) : Ray =
         {
@@ -42,20 +39,13 @@ module Ray =
 
     let liesOn (point : Point) (ray : Ray) : bool =
         match point, ray.Origin, ray.Vector with
-        | Point x, Point y, UnitVector (Vector ray) ->
-            let rec go (state : float option) (i : int) =
-                if i >= x.Length then state else
-                let d = x.[i]
-                let x = y.[i]
-                let r = ray.[i]
-                match state with
-                | None -> go (Some ((d - x) / r)) (i + 1)
-                | Some prevT ->
-                    let t = (d - x) / r
-                    if Float.equal prevT t then go (Some prevT) (i + 1) else None
-
-            go None 0
-            |> Option.isSome
+        | Point (p1, p2, p3), Point (o1, o2, o3), UnitVector (Vector (r1, r2, r3)) ->
+            let t = (p1 - o1) / r1
+            let t2 = (p2 - o2) / r2
+            if Float.equal t t2 then
+                let t3 = (p3 - o3) / r3
+                Float.equal t t3
+            else false
 
     let vector r = r.Vector
     let origin r = r.Origin

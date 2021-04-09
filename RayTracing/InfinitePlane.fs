@@ -12,7 +12,7 @@ type InfinitePlaneStyle =
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
     | LambertReflection of albedo : float<albedo> * colour : Pixel * Random
-    | FuzzyReflection of albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * Random
+    | FuzzedReflection of albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * Random
 
 type InfinitePlane =
     {
@@ -100,7 +100,7 @@ module InfinitePlane =
             | InfinitePlaneStyle.LightSource colour ->
                 None, Pixel.combine incomingColour colour
 
-            | InfinitePlaneStyle.FuzzyReflection (albedo, colour, fuzz, rand) ->
+            | InfinitePlaneStyle.FuzzedReflection (albedo, colour, fuzz, rand) ->
                 fuzzIt albedo colour (Some (fuzz, rand))
 
             | InfinitePlaneStyle.LambertReflection (albedo, colour, rand) ->

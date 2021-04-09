@@ -5,10 +5,15 @@ open System
 /// An n-dimensional point.
 /// We don't let you compare these for equality, because floats are hard.
 [<NoEquality ; NoComparison>]
-type Point = Point of float array
+[<Struct>]
+type Point =
+    private
+    | Point of struct(float * float * float)
 
 [<NoEquality ; NoComparison>]
-type Vector = Vector of float array
+type Vector =
+    private
+    | Vector of struct(float * float * float)
 
 type UnitVector = UnitVector of Vector
 
@@ -16,27 +21,18 @@ type UnitVector = UnitVector of Vector
 module Vector =
     let dot (p1 : Vector) (p2 : Vector) : float =
         match p1, p2 with
-        | Vector p1, Vector p2 ->
-            let mutable answer = 0.0
-            for i in 0..p1.Length - 1 do
-                answer <- answer + (p1.[i] * p2.[i])
-            answer
+        | Vector (x, y, z), Vector (a, b, c) ->
+            x * a + y * b + z * c
 
     let scale (scale : float) (vec : Vector) : Vector =
         match vec with
-        | Vector vec ->
-            vec
-            |> Array.map (fun i -> scale * i)
-            |> Vector
+        | Vector (a, b, c) ->
+            Vector (scale * a, scale * b, scale * c)
 
     let difference (v1 : Vector) (v2 : Vector) : Vector =
         match v1, v2 with
-        | Vector v1, Vector v2 ->
-            let answer = Array.zeroCreate v1.Length
-            for i in 0..answer.Length - 1 do
-                answer.[i] <- v1.[i] - v2.[i]
-            answer
-            |> Vector
+        | Vector (a, b, c), Vector (x, y, z) ->
+            Vector (a - x, b - y, c - z)
 
     let unitise (vec : Vector) : UnitVector option =
         let dot = dot vec vec
@@ -51,22 +47,23 @@ module Vector =
 
     let equal (v1 : Vector) (v2 : Vector) : bool =
         match v1, v2 with
-        | Vector p1, Vector p2 ->
-            let rec go (i : int) =
-                if i >= p1.Length then true else
-                if Float.equal p1.[i] p2.[i] then go (i + 1) else false
-            go 0
+        | Vector (a, b, c), Vector (x, y, z) ->
+            Float.equal a x && Float.equal b y && Float.equal c z
+
+    let make (x : float) (y : float) (z : float) =
+        Vector (x, y, z)
 
 [<RequireQualifiedAccess>]
 module UnitVector =
     let rec random (rand : Random) (dimension : int) : UnitVector =
-        let vector =
-            Array.init dimension (fun _ -> (2.0 * Float.random rand) - 1.0)
-            |> Vector
-            |> Vector.unitise
-        match vector with
-        | None -> random rand dimension
-        | Some result -> result
+        let x = (2.0 * Float.random rand) - 1.0
+        let y = (2.0 * Float.random rand) - 1.0
+        let z = (2.0 * Float.random rand) - 1.0
+        Vector.make x y z
+        |> Vector.unitise
+        |> function
+            | None -> random rand dimension
+            | Some result -> result
 
     let inline dot (UnitVector a) (UnitVector b) = Vector.dot a b
     let inline dot' (UnitVector a) (b : Vector) = Vector.dot a b
@@ -75,15 +72,14 @@ module UnitVector =
     let inline scale (scale : float) (UnitVector vec) = Vector.scale scale vec
     let inline flip (UnitVector vec) = UnitVector (Vector.scale -1.0 vec)
 
-    let basis (dimension : int) : UnitVector [] =
-        Array.init dimension (fun i ->
-            Array.init dimension (fun j ->
-                if i = j then 1.0 else 0.0
-            )
-            |> Vector
-            |> UnitVector
-        )
+    let basis (_ : int) : UnitVector [] =
+        [|
+            Vector (1.0, 0.0, 0.0) |> UnitVector
+            Vector (0.0, 1.0, 0.0) |> UnitVector
+            Vector (0.0, 0.0, 1.0) |> UnitVector
+        |]
 
+[<Struct>]
 type Difference =
     {
         EndUpAt : Point
@@ -93,29 +89,23 @@ type Difference =
 [<RequireQualifiedAccess>]
 module Point =
 
-    let inline dimension (Point p) = p.Length
+    let xCoordinate (Point (x, _, _)) = x
 
     let sum (p1 : Point) (p2 : Point) : Point =
         match p1, p2 with
-        | Point p1, Point p2 ->
-            Array.init p1.Length (fun i ->
-                p1.[i] + p2.[i]
-            )
-            |> Point
+        | Point (a, b, c), Point (x, y, z) ->
+            Point (a + x, b + y, c + z)
 
     let difference { EndUpAt = p1 ; ComeFrom = p2 } : Vector =
         match p1, p2 with
-        | Point p1, Point p2 ->
-            Array.init p1.Length (fun i ->
-                p1.[i] - p2.[i]
-            )
-            |> Vector
+        | Point (a, b, c), Point (x, y, z) ->
+            Vector (a - x, b - y, c - z)
 
     let equal (p1 : Point) (p2 : Point) : bool =
         match p1, p2 with
-        | Point p1, Point p2 ->
-            let rec go (i : int) : bool =
-                if i >= p1.Length then true else
-                if Float.equal p1.[i] p2.[i] then go (i + 1) else false
+        | Point (a, b, c), Point (x, y, z) ->
+            Float.equal a x && Float.equal b y && Float.equal c z
 
-            go 0
+    let make (x : float) (y : float) (z : float) = Point (x, y, z)
+    let inline dimension _ = 3
+

@@ -26,7 +26,7 @@ type SphereStyle =
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
     /// Fuzz must be between 0 (no fuzziness) and 1 (lots of fuzziness)
-    | FuzzedReflection of fuzz : float<fuzz> * Random * albedo : float<albedo> * colour : Pixel
+    | FuzzedReflection of  albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * Random
     /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
@@ -108,13 +108,9 @@ module Sphere =
             | SphereStyle.LightSource colour ->
                 None, Pixel.combine incomingColour colour
             | SphereStyle.LightSourceCap colour ->
-                let circleCentreZCoord =
-                    match centre with
-                    | Point v -> Array.head v
+                let circleCentreZCoord = Point.xCoordinate centre
                 let zCoordLowerBound = circleCentreZCoord + (radius - (radius / 4.0))
-                let strikeZCoord =
-                    match strikePoint with
-                    | Point v -> Array.head v
+                let strikeZCoord = Point.xCoordinate strikePoint
                 let colour =
                     match Float.compare strikeZCoord zCoordLowerBound with
                     | Greater ->
@@ -136,7 +132,7 @@ module Sphere =
 
             | SphereStyle.PureReflection (albedo, colour) ->
                 fuzzedReflection colour albedo None
-            | SphereStyle.FuzzedReflection (fuzz, random, albedo, colour) ->
+            | SphereStyle.FuzzedReflection (albedo, colour, fuzz, random) ->
                 fuzzedReflection colour albedo (Some (fuzz, random))
 
     let make (style : SphereStyle) (centre : Point) (radius : float) : Sphere =

@@ -39,9 +39,9 @@ module TestSphereIntersection =
     [<Test>]
     let ``Intersection of sphere and ray does lie on both, case 1`` () =
         let ray =
-            Ray.make' (Point [|1.462205539; -4.888279676; 7.123293244|]) (Vector [|-9.549697616; 4.400018428; 10.41024923|])
+            Ray.make' (Point.make 1.462205539 -4.888279676 7.123293244) (Vector.make -9.549697616 4.400018428 10.41024923)
             |> Option.get
-        let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Colour.White)) (Point [|-5.688391601; -5.360125644; 9.074300761|]) 8.199747973
+        let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Colour.White)) (Point.make -5.688391601 -5.360125644 9.074300761) 8.199747973
 
         let intersections = Sphere.intersections sphere ray Colour.White
 

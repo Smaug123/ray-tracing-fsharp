@@ -6,11 +6,12 @@ open RayTracing
 type progress
 
 type Image =
-    {
-        Rows : Pixel Async [] []
-        RowCount : int
-        ColCount : int
-    }
+    private
+        {
+            Rows : Pixel Async [] seq
+            RowCount : int
+            ColCount : int
+        }
 
 [<RequireQualifiedAccess>]
 module Image =
@@ -18,24 +19,25 @@ module Image =
 
     let colCount i = i.ColCount
 
-    let render (i : Image) : (Pixel * Async<unit>) [] [] =
-        Array.init i.RowCount (fun rowNum ->
-            let row = Array.zeroCreate<Pixel * Async<unit>> i.ColCount
+    let render (i : Image) : (Pixel * Async<unit>) [] seq =
+        i.Rows
+        |> Seq.map (fun imageRow ->
+            let outputRow = Array.zeroCreate<Pixel * Async<unit>> i.ColCount
             let doIt =
-                i.Rows.[rowNum]
+                imageRow
                 |> Array.mapi (fun i p -> async {
                     let! pixel = p
-                    let _, a = row.[i]
-                    row.[i] <- pixel, a
+                    let _, a = outputRow.[i]
+                    outputRow.[i] <- pixel, a
                 })
             for k in 0..i.ColCount - 1 do
-                row.[k] <- Unchecked.defaultof<_>, doIt.[k]
-            row
+                outputRow.[k] <- Unchecked.defaultof<_>, doIt.[k]
+            outputRow
         )
 
-    let make (pixels : Async<Pixel>[][]) : Image =
+    let make (rowCount : int) (colCount : int) (pixels : Async<Pixel>[] seq) : Image =
         {
-            RowCount = pixels.Length
-            ColCount = pixels.[0].Length
+            RowCount = rowCount
+            ColCount = colCount
             Rows = pixels
         }

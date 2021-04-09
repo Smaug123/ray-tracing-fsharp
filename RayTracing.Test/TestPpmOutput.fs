@@ -30,17 +30,17 @@ module TestRayTracing =
                             Green = 255uy
                         }
                     }
-                    async { return Colour.Black }
                     async { return Colour.White }
+                    async { return Colour.Black }
                 |]
             |]
-            |> Image.make
+            |> Image.make 3 2
 
         let outputFile =
             fs.Path.GetTempFileName ()
             |> fs.FileInfo.FromFileName
 
-        let _, tempOutput, await = ImageOutput.toPpm ignore image fs
+        let tempOutput, await = ImageOutput.toPpm ignore image fs
 
         async {
             do! await

@@ -40,10 +40,16 @@ module TestRayTracing =
             fs.Path.GetTempFileName ()
             |> fs.FileInfo.FromFileName
 
-        let _, writer =
-            ImageOutput.toPpm ignore image outputFile
+        let _, tempOutput, await = ImageOutput.toPpm ignore image fs
 
-        writer |> Async.RunSynchronously
+        async {
+            do! await
+            let! pixelMap = ImageOutput.readPixelMap ignore tempOutput
+            let! arr = ImageOutput.toArray ignore pixelMap
+            do! ImageOutput.writePpm ignore arr outputFile
+            return ()
+        }
+        |> Async.RunSynchronously
 
         fs.File.ReadAllText outputFile.FullName
         |> shouldEqual expected

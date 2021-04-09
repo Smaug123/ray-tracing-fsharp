@@ -32,12 +32,23 @@ type SphereStyle =
     /// Albedo must be between 0 and 1.
     | LambertReflection of albedo : float<albedo> * colour : Pixel * Random
 
+type Orientation =
+    | Inside
+    | Outside
+
 [<RequireQualifiedAccess>]
 module Sphere =
 
+    /// A ray hits the sphere with centre `centre` at point `p`.
+    /// This function gives the outward-pointing normal.
     let normal (centre : Point) (p : Point) : Ray =
         Ray.make' p (Point.difference { EndUpAt = p ; ComeFrom = centre })
         |> Option.get
+
+    let private liesOn' (centre : Point) (radius : float) : Point -> bool =
+        let rSquared = radius * radius
+        fun p ->
+            Float.equal (Vector.normSquared (Point.difference { ComeFrom = centre ; EndUpAt = p })) rSquared
 
     let reflection
         (style : SphereStyle)
@@ -48,6 +59,15 @@ module Sphere =
         let normal = normal centre
         fun incomingRay incomingColour strikePoint ->
             let normal = normal strikePoint
+            // If the incoming ray is on the sphere, then we have to be an internal ray.
+            let normal =
+                match Float.compare (Vector.normSquared (Point.difference { ComeFrom = Ray.origin incomingRay ; EndUpAt = centre })) (radius * radius) with
+                | Equal
+                | Less ->
+                    // Point is inside or on the sphere so we are coming from within
+                    Ray.make (Ray.origin normal) (UnitVector.scale -1.0 (Ray.vector normal) |> UnitVector)
+                | Greater ->
+                    normal
 
             let fuzzedReflection (colour : Pixel) (albedo : float<albedo>) (fuzz : (float<fuzz> * Random) option) =
                 let plane =
@@ -127,7 +147,7 @@ module Sphere =
         }
 
     let liesOn (point : Point) (sphere : Sphere) : bool =
-        Float.equal (Vector.normSquared (Point.difference { ComeFrom = sphere.Centre ; EndUpAt = point })) (sphere.Radius * sphere.Radius)
+        liesOn' sphere.Centre sphere.Radius point
 
     /// Returns the intersections of this ray with this sphere.
     /// The nearest intersection is returned first, if there are multiple.

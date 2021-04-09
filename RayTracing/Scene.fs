@@ -112,7 +112,7 @@ module Scene =
             ColCount = colsIter
             Rows =
                 Array.init rowsIter (fun row ->
-                    let row = row - maxHeightCoord
+                    let row = maxHeightCoord - row - 1
                     Array.init colsIter (fun col ->
                         let col = col - maxWidthCoord
                         async {

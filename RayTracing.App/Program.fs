@@ -13,25 +13,35 @@ module Program =
     let go (sample : SampleImages) (ctx : ProgressContext) =
         let fs = FileSystem ()
 
-        let output =
+        let ppmOutput =
             fs.Path.GetTempFileName ()
             |> fun s -> fs.Path.ChangeExtension (s, ".ppm")
             |> fs.FileInfo.FromFileName
 
-        let task = ctx.AddTask "[green]Generating and writing image[/]"
-        let maxProgress, image = SampleImages.get sample task.Increment
-        task.MaxValue <- maxProgress / 1.0<progress>
+        let renderTask = ctx.AddTask "[green]Generating and writing image[/]"
+        let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
+        let arrangeTask = ctx.AddTask "[green]Rearranging pixels into correct order[/]"
+        let writeTask = ctx.AddTask "[green]Writing PPM file[/]"
 
-        let _, writer, await = ImageOutput.toPpm ignore image fs
-        printfn "Temporary output being written eagerly to '%s'" writer.FullName
+        let maxProgress, image = SampleImages.get sample renderTask.Increment
+        renderTask.MaxValue <- maxProgress / 1.0<progress>
+        readTask.MaxValue <- maxProgress / 1.0<progress>
+        arrangeTask.MaxValue <- maxProgress / 1.0<progress>
+        writeTask.MaxValue <- maxProgress / 1.0<progress>
+
+        let _, tempOutput, await = ImageOutput.toPpm ignore image fs
+        AnsiConsole.WriteLine (sprintf "Temporary output being written eagerly to '%s'" tempOutput.FullName)
 
         async {
             do! await
-            return! ImageOutput.convert writer output
+            let! pixelMap = ImageOutput.readPixelMap readTask.Increment tempOutput
+            let! arr = ImageOutput.toArray arrangeTask.Increment pixelMap
+            do! ImageOutput.writePpm writeTask.Increment arr ppmOutput
+            return ()
         }
         |> Async.RunSynchronously
 
-        printfn "%s" output.FullName
+        printfn "%s" ppmOutput.FullName
 
     [<EntryPoint>]
     let main (argv : string []) : int =

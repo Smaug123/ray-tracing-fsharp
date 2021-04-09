@@ -54,5 +54,5 @@ module Camera =
                 Ray.parallelTo (Ray.walkAlong view focalLength) xAxis
             ViewportYAxis =
                 Ray.parallelTo (Ray.walkAlong view focalLength) yAxis
-            SamplesPerPixel = 150
+            SamplesPerPixel = 25
         }

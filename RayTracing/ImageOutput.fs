@@ -1,6 +1,8 @@
 ﻿namespace RayTracing
 
 open System
+open System.Collections.Generic
+open System.Collections.Immutable
 open System.IO
 open System.IO.Abstractions
 
@@ -26,12 +28,12 @@ module PixelOutput =
 [<RequireQualifiedAccess>]
 module ImageOutput =
 
-    let convert (progress : IFileInfo) (output : IFileInfo) : Async<unit> =
+    let readPixelMap (incrementProgress : float<progress> -> unit) (progress : IFileInfo) : Async<ImmutableDictionary<_, _>> =
         async {
             let! pixels =
                 progress.FileSystem.File.ReadAllLinesAsync progress.FullName
                 |> Async.AwaitTask
-            let outputMap =
+            return
                 pixels
                 |> Array.map (fun line ->
                     match line.Split ':' with
@@ -45,20 +47,31 @@ module ImageOutput =
                             | [| r ; g ; b |] -> r, g, b
                             | _ -> failwithf "Malformed progress file, expected single comma in pixels section '%s' of line '%s'" pixel line
 
-                        ((Int32.Parse row, Int32.Parse col), { Red = Byte.Parse r ; Green = Byte.Parse g ; Blue = Byte.Parse b })
+                        incrementProgress 1.0<progress>
+                        KeyValuePair ((Int32.Parse row, Int32.Parse col), { Red = Byte.Parse r ; Green = Byte.Parse g ; Blue = Byte.Parse b })
                     | _ ->
                         failwithf "Malformed progress file, expected single colon in line: '%s'" line
                 )
-                |> Map.ofArray
-            let keys = outputMap |> Map.toSeq |> Seq.map fst |> Set.ofSeq
-            let maxRow, maxCol = keys.MaximumElement
+                |> ImmutableDictionary.CreateRange
+        }
+
+    let toArray (incrementProgress : float<progress> -> unit) (pixels : ImmutableDictionary<int * int, Pixel>) : Async<Pixel [] []> =
+        async {
+            let maxRow, maxCol = pixels |> Seq.map (fun (KeyValue(k, _)) -> k) |> Seq.max
             let pixels =
                 Array.init (maxRow + 1) (fun row ->
                     Array.init (maxCol + 1) (fun col ->
-                        outputMap.[row, col]
+                        incrementProgress 1.0<progress>
+                        pixels.[row, col]
                     )
                 )
+            return pixels
+        }
 
+    let writePpm (incrementProgress : float<progress> -> unit) (pixels : Pixel [] []) (output : IFileInfo) : Async<unit> =
+        let maxRow = pixels.Length
+        let maxCol = pixels.[0].Length
+        async {
             use output = output.OpenWrite ()
             use writer = new StreamWriter (output)
 
@@ -71,9 +84,11 @@ module ImageOutput =
                     let pixel = pixels.[row].[col]
                     writer.Write (PixelOutput.toPpm pixel)
                     writer.Write " "
+                    incrementProgress 1.0<progress>
 
                 let pixel = pixels.[row].[pixels.[row].Length - 1]
                 writer.Write (PixelOutput.toPpm pixel)
+                incrementProgress 1.0<progress>
 
             for row in 0..pixels.Length - 2 do
                 writeRow row

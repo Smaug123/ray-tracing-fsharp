@@ -77,27 +77,27 @@ module SampleImages =
         let origin = Point [| 0.0 ; 0.0 ; 0.0 |]
         let camera =
             Camera.makeBasic 7.0 aspectRatio origin (Vector [| 0.0 ; 0.0 ; 1.0 |] |> Vector.unitise |> Option.get)
-        let pixels = 2800
+        let pixels = 200
         {
             Objects =
                 [|
-                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.8<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random)) (Point [| 0.0 ; 0.0 ; 9.0 |]) 1.0)
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.95<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random)) (Point [| 0.0 ; 0.0 ; 9.0 |]) 1.0)
                     Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 0uy ; Green = 255uy ; Blue = 255uy })) (Point [| 1.5 ; 0.5 ; 8.0 |]) 0.5)
                     Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Colour.White with Red = 200uy ; Green = 220uy } ) (Point [| -1.5 ; 1.0 ; 8.0 |]) 0.5)
-                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (0.1<fuzz>, random, 1.0<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 0uy }) ) (Point [| -0.4 ; 1.5 ; 10.0 |]) 0.25)
+                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (0.2<fuzz>, random, 1.0<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 0uy }) ) (Point [| -0.4 ; 1.5 ; 10.0 |]) 0.25)
 
                     // Left side mirror
                     Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.8<albedo>, Colour.White)) (Point [| 0.0 ; 0.0 ; 12.0 |]) (Vector [| 1.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
 
                     // Floor rug
                     // Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzyReflection (0.6<albedo>, Colour.White, 0.8<fuzz>, random)) (Point [| 0.0 ; 5.0 ; 0.0 |]) (Vector [| 0.0 ; -1.0 ; 0.0 |] |> Vector.unitise |> Option.get)) // Floor rug
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzyReflection (0.75<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 100uy }, 0.8<fuzz>, random)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |] |> Vector.unitise |> Option.get))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzyReflection (0.85<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 100uy }, 0.8<fuzz>, random)) (Point [| 0.0 ; -1.0 ; 0.0 |]) (Vector [| 0.0 ; 1.0 ; 0.0 |] |> Vector.unitise |> Option.get))
 
                     // Right side mirror
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.8<albedo>, Colour.White)) (Point [| 0.0 ; 0.0 ; 12.0 |]) (Vector [| -1.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.95<albedo>, Colour.White)) (Point [| 0.0 ; 0.0 ; 12.0 |]) (Vector [| -1.0 ; 0.0 ; -1.0 |] |> Vector.unitise |> Option.get))
 
                     // Light pad behind us
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource { Red = 5uy ; Green = 5uy ; Blue = 5uy }) (Point [| 0.0 ; 1.0 ; -1.0 |]) (Vector [| 0.0 ; 0.0 ; 1.0 |] |> Vector.unitise |> Option.get))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource { Red = 15uy ; Green = 15uy ; Blue = 15uy }) (Point [| 0.0 ; 1.0 ; -1.0 |]) (Vector [| 0.0 ; 0.0 ; 1.0 |] |> Vector.unitise |> Option.get))
                 |]
         }
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera

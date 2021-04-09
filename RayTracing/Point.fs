@@ -68,11 +68,12 @@ module UnitVector =
         | None -> random rand dimension
         | Some result -> result
 
-    let dot (UnitVector a) (UnitVector b) = Vector.dot a b
-    let dot' (UnitVector a) (b : Vector) = Vector.dot a b
-    let difference (UnitVector v1) (UnitVector v2) = Vector.difference v1 v2
-    let difference' (UnitVector v1) (v2 : Vector) = Vector.difference v1 v2
-    let scale (scale : float) (UnitVector vec) = Vector.scale scale vec
+    let inline dot (UnitVector a) (UnitVector b) = Vector.dot a b
+    let inline dot' (UnitVector a) (b : Vector) = Vector.dot a b
+    let inline difference (UnitVector v1) (UnitVector v2) = Vector.difference v1 v2
+    let inline difference' (UnitVector v1) (v2 : Vector) = Vector.difference v1 v2
+    let inline scale (scale : float) (UnitVector vec) = Vector.scale scale vec
+    let inline flip (UnitVector vec) = UnitVector (Vector.scale -1.0 vec)
 
     let basis (dimension : int) : UnitVector [] =
         Array.init dimension (fun i ->

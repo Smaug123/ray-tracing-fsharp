@@ -32,20 +32,30 @@ module ImageOutput =
         let rec go (dict : Dictionary<_, _>) (reader : StreamReader) =
             async {
                 let! line = reader.ReadLineAsync () |> Async.AwaitTask
-                match line.Split ':' with
-                | [| coords ; pixel |] ->
-                    let row, col =
-                        match coords.Split ',' with
-                        | [| row ; col |] -> row, col
-                        | _ -> failwithf "Malformed progress file, expected single comma in coordinates section '%s' of line '%s'" coords line
-                    let r, g, b =
-                        match pixel.Split ',' with
-                        | [| r ; g ; b |] -> r, g, b
-                        | _ -> failwithf "Malformed progress file, expected single comma in pixels section '%s' of line '%s'" pixel line
+                let rowCol =
+                    match line.Split ',' with
+                    | [| row ; col |] -> Some struct(row, col)
+                    | _ ->
+                        None
+                match rowCol with
+                | None -> return dict
+                | Some (row, col) ->
 
-                    incrementProgress 1.0<progress>
-                    dict.Add ((Int32.Parse row, Int32.Parse col), { Red = Byte.Parse r ; Green = Byte.Parse g ; Blue = Byte.Parse b })
-                | _ -> failwithf "Malformatted line: %s" line
+                let r = reader.Read ()
+                if r = -1 then
+                    // end of stream
+                    return dict
+                else
+                let g = reader.Read ()
+                if g = -1 then return dict else
+                let b = reader.Read ()
+                if b = -1 then return dict else
+                let newline = reader.Read ()
+                if newline > 0 && newline <> 10 then // '\n'
+                    failwithf "Malformed progress file, expected newline after three bytes, got character '%i'" newline
+
+                incrementProgress 1.0<progress>
+                dict.Add ((Int32.Parse row, Int32.Parse col), { Red = byte r ; Green = byte g ; Blue = byte b })
 
                 if not reader.EndOfStream then
                     return! go dict reader
@@ -76,7 +86,11 @@ module ImageOutput =
                                 | false, _ -> pixel
                                 | true, v -> async { return v }
                             lock writer (fun () ->
-                                writer.WriteLine (sprintf "%i,%i:%i,%i,%i" rowNum colNum pixel.Red pixel.Green pixel.Blue)
+                                writer.WriteLine (sprintf "%i,%i" rowNum colNum)
+                                writer.Write pixel.Red
+                                writer.Write pixel.Green
+                                writer.Write pixel.Blue
+                                writer.Write '\n'
                             )
                             incrementProgress 1.0<progress>
                             return ()

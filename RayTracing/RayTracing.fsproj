@@ -17,7 +17,6 @@
         <Compile Include="ImageOutput.fs" />
         <Compile Include="Camera.fs" />
         <Compile Include="Scene.fs" />
-        <Compile Include="SampleImages.fs" />
     </ItemGroup>
 
     <ItemGroup>

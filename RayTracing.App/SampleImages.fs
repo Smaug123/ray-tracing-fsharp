@@ -30,19 +30,17 @@ module SampleImages =
                 Blue = 63uy
             }
 
-        256.0<progress>,
-        {
-            RowCount = 256
-            ColCount = 256
-            Rows =
-                Array.init
-                    256
-                    (fun height ->
-                        let output = Array.init 256 (fun i -> async { return pixelAt height i })
-                        progressIncrement 1.0<progress>
-                        output
-                    )
-        }
+        let image =
+            Array.init
+                256
+                (fun height ->
+                    let output = Array.init 256 (fun i -> async { return pixelAt height i })
+                    progressIncrement 1.0<progress>
+                    output
+                )
+            |> Image.make 256 256
+
+        256.0<progress>, image
 
     let shinyPlane (progressIncrement : float<progress> -> unit) : float<progress> * Image =
         let aspectRatio = 16.0 / 9.0
@@ -137,7 +135,7 @@ module SampleImages =
         let origin = Point.make 0.0 0.0 0.0
         let camera =
             Camera.makeBasic 1.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
-        let pixels = 500
+        let pixels = 300
         {
             Objects =
                 [|

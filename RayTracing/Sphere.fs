@@ -158,7 +158,7 @@ module Sphere =
                     |> Pixel.darken albedo
 
                 let rand = random.Get ()
-                if rand > reflectionProb / 1.0<prob> then
+                if LanguagePrimitives.FloatWithMeasure rand > reflectionProb then
                     // reflect!
                     fuzzedReflection colour albedo None
                 else
@@ -176,12 +176,6 @@ module Sphere =
                 let outgoingPoint =
                     Ray.walkAlong (Ray.make (Ray.walkAlong normal (-outgoingCos)) plane.V2) outgoingSin
                 let outgoing = Point.differenceToThenFrom outgoingPoint strikePoint |> Ray.make' strikePoint |> Option.get
-
-                (*
-                let perpLength = (Vector.sum (let (UnitVector v) = Ray.vector incomingRay in v) (Point.differenceToThenFrom (Ray.walkAlong normal cos) strikePoint))
-                let perpendicularComponent = UnitVector.scale (index * perpLength) plane.V2
-                let parallelComponent = Ray.walkAlong normal (-sqrt (abs (1.0 - Vector.normSquared perpendicularComponent)))
-                *)
 
                 Some outgoing, newColour
 

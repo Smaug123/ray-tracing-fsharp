@@ -32,6 +32,7 @@ module Program =
             let! pixelMap = ImageOutput.readPixelMap readTask.Increment tempOutput
             let! arr = ImageOutput.toArray arrangeTask.Increment pixelMap
             do! ImageOutput.writePpm writeTask.Increment arr ppmOutput
+            tempOutput.Delete ()
             return ()
         }
         |> Async.RunSynchronously

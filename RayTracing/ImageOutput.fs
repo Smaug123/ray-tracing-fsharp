@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
 open System.IO.Abstractions
+open System.Text
 
 [<RequireQualifiedAccess>]
 module PixelOutput =
@@ -71,7 +72,7 @@ module ImageOutput =
         }
 
     let resume (incrementProgress : float<progress> -> unit) (soFar : IReadOnlyDictionary<int * int, Pixel>) (image : Image) (fs : IFileSystem) : IFileInfo * Async<unit> =
-        let rec go (writer : StreamWriter) (rowNum : int) (rowEnum : IEnumerator<Pixel Async []>) =
+        let rec go (writer : Stream) (rowNum : int) (rowEnum : IEnumerator<Pixel Async []>) =
             async {
                 if not (rowEnum.MoveNext ()) then
                     return ()
@@ -85,12 +86,14 @@ module ImageOutput =
                                 match soFar.TryGetValue ((rowNum, colNum)) with
                                 | false, _ -> pixel
                                 | true, v -> async { return v }
+                            let toWrite = ASCIIEncoding.Default.GetBytes (sprintf "%i,%i" rowNum colNum)
                             lock writer (fun () ->
-                                writer.WriteLine (sprintf "%i,%i" rowNum colNum)
-                                writer.Write pixel.Red
-                                writer.Write pixel.Green
-                                writer.Write pixel.Blue
-                                writer.Write '\n'
+                                writer.Write (toWrite, 0, toWrite.Length)
+                                writer.WriteByte 10uy // '\n'
+                                writer.WriteByte pixel.Red
+                                writer.WriteByte pixel.Green
+                                writer.WriteByte pixel.Blue
+                                writer.WriteByte 10uy // '\n'
                             )
                             incrementProgress 1.0<progress>
                             return ()
@@ -109,9 +112,8 @@ module ImageOutput =
         tempFile,
         async {
             use outputStream = tempFile.OpenWrite ()
-            use writer = new StreamWriter (outputStream)
             use enumerator = image.Rows.GetEnumerator ()
-            return! go writer 0 enumerator
+            return! go outputStream 0 enumerator
         }
 
     let toArray (incrementProgress : float<progress> -> unit) (pixels : IReadOnlyDictionary<int * int, Pixel>) : Async<Pixel [] []> =

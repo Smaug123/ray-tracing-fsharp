@@ -1,7 +1,5 @@
 namespace RayTracing
 
-open System
-
 [<Measure>]
 type fuzz
 
@@ -191,34 +189,32 @@ module Sphere =
     let liesOn (point : Point) (sphere : Sphere) : bool =
         liesOn' sphere.Centre sphere.Radius point
 
-    /// Returns the nearest intersection of this ray with this sphere.
+    /// Returns the distance along this ray at which the nearest intersection of the ray lies with this sphere.
     /// Does not return any intersections which are behind us.
     /// If the sphere is made of a material which does not re-emit light, you'll
     /// get a None for the outgoing ray.
     let firstIntersection
         (sphere : Sphere)
         (ray : Ray)
-        (incomingColour : Pixel)
-        : (Point * (unit -> Ray option * Pixel)) option
+        : float voption
         =
-        let difference =
-            Point.difference { EndUpAt = Ray.origin ray ; ComeFrom = sphere.Centre }
+        let difference = Point.differenceToThenFrom (Ray.origin ray) sphere.Centre
 
-        let b = (UnitVector.dot' (Ray.vector ray) difference) * 2.0
+        let b = (UnitVector.dot' (Ray.vector ray) difference)
 
         let c = (Vector.normSquared difference) - sphere.RadiusSquared
 
-        let discriminant = (b * b) - (4.0 * c)
+        let discriminantOverFour = (b * b - c)
 
         let intersectionPoint =
-            match Float.compare discriminant 0.0 with
+            match Float.compare discriminantOverFour 0.0 with
             | Comparison.Equal ->
-                Some (-(b / 2.0))
+                Some (-b)
             | Comparison.Less -> None
             | Comparison.Greater ->
-                let intermediate = sqrt discriminant
-                let i1 = (intermediate - b) / 2.0
-                let i2 = - (b + intermediate) / 2.0
+                let intermediate = sqrt discriminantOverFour
+                let i1 = intermediate - b
+                let i2 = - (b + intermediate)
                 let i1Pos = Float.positive i1
                 let i2Pos = Float.positive i2
                 if i1Pos && i2Pos then
@@ -231,10 +227,9 @@ module Sphere =
                 elif i2Pos then Some i2
                 else None
         match intersectionPoint with
-        | None -> None
+        | None -> ValueNone
         | Some i ->
             // Don't return anything that's behind us
             if Float.positive i then
-                let strikePoint = Ray.walkAlong ray i
-                Some (strikePoint, fun () -> sphere.Reflection ray incomingColour strikePoint)
-            else None
+                ValueSome i
+            else ValueNone

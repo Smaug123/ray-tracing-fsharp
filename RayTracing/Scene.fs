@@ -6,19 +6,25 @@ type Hittable =
     | Sphere of Sphere
     | InfinitePlane of InfinitePlane
 
+    member this.Reflection (incoming : Ray) (incomingColour : Pixel) (strikePoint : Point) =
+        match this with
+        | Sphere s -> s.Reflection incoming incomingColour strikePoint
+        | InfinitePlane p -> p.Reflection incoming incomingColour strikePoint
+
 [<RequireQualifiedAccess>]
 module Hittable =
+    /// Returns the distance we must walk along this ray before we first hit an object, the
+    /// colour the resulting light ray is after the interaction, and the new ray.
     let hits
         (ray : Ray)
-        (incomingColour : Pixel)
         (h : Hittable)
-        : (Point * (unit -> Ray option * Pixel)) option
+        : float voption
         =
         match h with
         | Sphere s ->
-            Sphere.firstIntersection s ray incomingColour
+            Sphere.firstIntersection s ray
         | InfinitePlane plane ->
-            InfinitePlane.intersection plane ray incomingColour
+            InfinitePlane.intersection plane ray
 
 type Scene =
     {
@@ -31,23 +37,25 @@ module Scene =
     let hitObject
         (s : Scene)
         (ray : Ray)
-        (colour : Pixel)
-        : (Point * (unit -> Ray option * Pixel)) option
+        : (int * Point) option
         =
-        let mutable answer = Unchecked.defaultof<_>
+        let mutable bestIndex = -1
+        let mutable bestLength = nan
         let mutable bestFloat = infinity
         for i in 0..s.Objects.Length - 1 do
-            match Hittable.hits ray colour s.Objects.[i] with
-            | None -> ()
-            | Some (point, g) ->
-                let a = Vector.normSquared (Point.difference { EndUpAt = point ; ComeFrom = Ray.origin ray })
+            match Hittable.hits ray s.Objects.[i] with
+            | ValueNone -> ()
+            | ValueSome point ->
+                let a = point * point
                 match Float.compare a bestFloat with
                 | Less ->
                     bestFloat <- a
-                    answer <- point, g
+                    bestIndex <- i
+                    bestLength <- point
                 | _ -> ()
 
-        if Object.ReferenceEquals(answer, null) then None else Some answer
+        if Double.IsNaN bestLength then None else
+        Some (bestIndex, Ray.walkAlong ray bestLength)
 
     let internal traceRay
         (maxCount : int)
@@ -59,13 +67,13 @@ module Scene =
         let rec go (bounces : int) (ray : Ray) (colour : Pixel) : Pixel =
             if bounces > maxCount then Colour.HotPink else
 
-            let thingsWeHit = hitObject scene ray colour
+            let thingsWeHit = hitObject scene ray
             match thingsWeHit with
             | None ->
                 // Ray goes off into the distance and is never heard from again
                 Colour.Black
-            | Some (_, gen) ->
-                let outgoingRay, colour = gen ()
+            | Some (objectNumber, strikePoint) ->
+                let outgoingRay, colour = scene.Objects.[objectNumber].Reflection ray colour strikePoint
                 match outgoingRay with
                 | None ->
                     colour

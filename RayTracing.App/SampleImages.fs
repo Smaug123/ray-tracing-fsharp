@@ -76,7 +76,9 @@ module SampleImages =
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
     let spheres (progressIncrement : float<progress> -> unit) : float<progress> * Image =
-        let random = Random () |> FloatProducer
+        let random1 = Random () |> FloatProducer
+        let random2 = Random () |> FloatProducer
+        let random3 = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
@@ -85,16 +87,16 @@ module SampleImages =
         {
             Objects =
                 [|
-                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.95<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random)) (Point.make 0.0 0.0 9.0) 1.0)
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.95<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random1)) (Point.make 0.0 0.0 9.0) 1.0)
                     Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 0uy ; Green = 255uy ; Blue = 255uy })) (Point.make 1.5 0.5 8.0) 0.5)
                     Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Colour.White with Red = 200uy ; Green = 220uy } ) (Point.make -1.5 1.0 8.0) 0.5)
-                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (1.0<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 0uy }, 0.2<fuzz>, random) ) (Point.make -0.4 1.5 10.0) 0.25)
+                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (1.0<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 0uy }, 0.2<fuzz>, random2) ) (Point.make -0.4 1.5 10.0) 0.25)
 
                     // Left side mirror
                     Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.8<albedo>, Colour.White)) (Point.make 0.0 0.0 12.0) (Vector.make 1.0 0.0 -1.0 |> Vector.unitise |> Option.get))
 
                     // Floor rug
-                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzedReflection (0.85<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 100uy }, 0.8<fuzz>, random)) (Point.make 0.0 -1.0 0.0) (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get))
+                    Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzedReflection (0.85<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 100uy }, 0.8<fuzz>, random3)) (Point.make 0.0 -1.0 0.0) (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get))
 
                     // Right side mirror
                     Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.95<albedo>, Colour.White)) (Point.make 0.0 0.0 12.0) (Vector.make -1.0 0.0 -1.0 |> Vector.unitise |> Option.get))
@@ -106,7 +108,10 @@ module SampleImages =
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
     let insideSphere (progressIncrement : float<progress> -> unit) : float<progress> * Image =
-        let random = Random () |> FloatProducer
+        let random1 = Random () |> FloatProducer
+        let random2 = Random () |> FloatProducer
+        let random3 = Random () |> FloatProducer
+        let random4 = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
@@ -115,15 +120,15 @@ module SampleImages =
         {
             Objects =
                 [|
-                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.95<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random)) (Point.make 0.0 0.0 9.0) 1.0)
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.95<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 0uy }, random1)) (Point.make 0.0 0.0 9.0) 1.0)
                     Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 0uy ; Green = 255uy ; Blue = 255uy })) (Point.make 1.5 0.5 8.0) 0.5)
                     Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 255uy ; Green = 20uy ; Blue = 20uy })) (Point.make -1.8 0.8 8.0) 0.5)
                     Hittable.Sphere (Sphere.make (SphereStyle.LightSource Colour.White) (Point.make -10.0 8.0 0.0) 9.0)
-                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (1.0<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 0uy }, 0.2<fuzz>, random) ) (Point.make 1.4 1.5 10.0) 0.25)
+                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (1.0<albedo>, { Red = 255uy ; Green = 100uy ; Blue = 0uy }, 0.2<fuzz>, random2) ) (Point.make 1.4 1.5 10.0) 0.25)
                     Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (0.9<albedo>, { Red = 255uy ; Green = 255uy ; Blue = 255uy })) (Point.make 0.0 10.0 20.0) 8.0)
 
-                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (0.6<albedo>, { Red = 200uy ; Green = 50uy ; Blue = 255uy }, 0.4<fuzz>, random)) (Point.make 0.0 -76.0 9.0) 75.0 )
-                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (0.4<albedo>, { Red = 200uy ; Green = 200uy ; Blue = 200uy }, 0.0<fuzz>, random)) (Point.make 0.0 0.0 20.0) 100.0)
+                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (0.6<albedo>, { Red = 200uy ; Green = 50uy ; Blue = 255uy }, 0.4<fuzz>, random3)) (Point.make 0.0 -76.0 9.0) 75.0 )
+                    Hittable.Sphere (Sphere.make (SphereStyle.FuzzedReflection (0.4<albedo>, { Red = 200uy ; Green = 200uy ; Blue = 200uy }, 0.0<fuzz>, random4)) (Point.make 0.0 0.0 20.0) 100.0)
                     // Light pad behind us
                     Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource ({ Red = 80uy ; Green = 80uy ; Blue = 150uy })) (Point.make 0.0 0.0 -5.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get))
 

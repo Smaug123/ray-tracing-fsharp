@@ -27,25 +27,23 @@ type InfinitePlane =
 [<RequireQualifiedAccess>]
 module InfinitePlane =
 
-    /// Returns the intersection of this ray with this plane, or None if none exists or the ray is in the plane.
+    /// Returns the position along this ray where we intersect this plane, or None if none exists or the ray is in the plane.
     /// Does not return any intersections which are behind us.
     /// If the plane is made of a material which does not re-emit light, you'll
     /// get a None for the outgoing ray.
     let intersection
         (plane : InfinitePlane)
         (ray : Ray)
-        (incomingColour : Pixel)
-        : (Point * (unit -> Ray option * Pixel)) option
+        : float voption
         =
         let rayVec = Ray.vector ray
         let denominator = UnitVector.dot plane.Normal rayVec
-        if Float.equal denominator 0.0 then None
+        if Float.equal denominator 0.0 then ValueNone
         else
             let t = (UnitVector.dot' plane.Normal (Point.difference { EndUpAt = plane.Point ; ComeFrom = Ray.origin ray })) / denominator
             if Float.positive t then
-                let strikePoint = Ray.walkAlong ray t
-                Some (strikePoint, fun () -> plane.Reflection ray incomingColour strikePoint)
-            else None
+                ValueSome t
+            else ValueNone
 
     let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : Ray) : Ray option =
         let plane =

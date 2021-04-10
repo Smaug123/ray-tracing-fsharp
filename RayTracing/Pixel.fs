@@ -52,8 +52,38 @@ module Colour =
             Blue = 0uy
         }
 
+type PixelStats =
+    private
+        {
+            mutable Count : int
+            mutable SumRed : int
+            mutable SumGreen : int
+            mutable SumBlue : int
+        }
+
+[<RequireQualifiedAccess>]
+module PixelStats =
+    let empty () = { Count = 0 ; SumRed = 0 ; SumGreen = 0 ; SumBlue = 0 }
+
+    let add (p : Pixel) (stats : PixelStats) : unit =
+        stats.Count <- stats.Count + 1
+        stats.SumRed <- stats.SumRed + int p.Red
+        stats.SumGreen <- stats.SumGreen + int p.Green
+        stats.SumBlue <- stats.SumBlue + int p.Blue
+
+    let mean (stats : PixelStats) : Pixel =
+        {
+            Red = stats.SumRed / stats.Count |> byte
+            Green = stats.SumGreen / stats.Count |> byte
+            Blue = stats.SumBlue / stats.Count |> byte
+        }
+
 [<RequireQualifiedAccess>]
 module Pixel =
+
+    let difference (p1 : Pixel) (p2 : Pixel) : int =
+        abs (int p1.Red - int p2.Red) + abs (int p1.Green - int p2.Green) + abs (int p1.Blue - int p2.Blue)
+
     let average (s : Pixel []) : Pixel =
         let mutable r = s.[0].Red |> float
         let mutable g = s.[0].Green |> float

@@ -58,7 +58,7 @@ module SampleImages =
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
     let fuzzyPlane (progressIncrement : float<progress> -> unit) : float<progress> * Image =
-        let random = Random ()
+        let random = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
@@ -74,7 +74,7 @@ module SampleImages =
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
     let spheres (progressIncrement : float<progress> -> unit) : float<progress> * Image =
-        let random = Random ()
+        let random = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
@@ -104,7 +104,7 @@ module SampleImages =
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
     let insideSphere (progressIncrement : float<progress> -> unit) : float<progress> * Image =
-        let random = Random ()
+        let random = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =

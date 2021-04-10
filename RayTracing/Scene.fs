@@ -12,15 +12,13 @@ module Hittable =
         (ray : Ray)
         (incomingColour : Pixel)
         (h : Hittable)
-        : (Point * Ray option * Pixel) option
+        : (Point * (unit -> Ray option * Pixel)) option
         =
         match h with
         | Sphere s ->
-            Sphere.intersections s ray incomingColour
-            |> Array.tryHead
+            Sphere.firstIntersection s ray incomingColour
         | InfinitePlane plane ->
-            InfinitePlane.intersections plane ray incomingColour
-            |> Array.tryHead
+            InfinitePlane.intersection plane ray incomingColour
 
 type Scene =
     {
@@ -34,11 +32,22 @@ module Scene =
         (s : Scene)
         (ray : Ray)
         (colour : Pixel)
-        : (Point * Ray option * Pixel) array
+        : (Point * (unit -> Ray option * Pixel)) option
         =
-        s.Objects
-        |> Array.choose (Hittable.hits ray colour)
-        |> Float.sortInPlaceBy (fun (a, _, _) -> Vector.normSquared (Point.difference { EndUpAt = a ; ComeFrom = Ray.origin ray }))
+        let mutable answer = Unchecked.defaultof<_>
+        let mutable bestFloat = infinity
+        for i in 0..s.Objects.Length - 1 do
+            match Hittable.hits ray colour s.Objects.[i] with
+            | None -> ()
+            | Some (point, g) ->
+                let a = Vector.normSquared (Point.difference { EndUpAt = point ; ComeFrom = Ray.origin ray })
+                match Float.compare a bestFloat with
+                | Less ->
+                    bestFloat <- a
+                    answer <- point, g
+                | _ -> ()
+
+        if Object.ReferenceEquals(answer, null) then None else Some answer
 
     let internal traceRay
         (maxCount : int)
@@ -52,11 +61,11 @@ module Scene =
 
             let thingsWeHit = hitObject scene ray colour
             match thingsWeHit with
-            | [||] ->
+            | None ->
                 // Ray goes off into the distance and is never heard from again
                 Colour.Black
-            | arr ->
-                let _strikePoint, outgoingRay, colour = arr.[0]
+            | Some (_, gen) ->
+                let outgoingRay, colour = gen ()
                 match outgoingRay with
                 | None ->
                     colour
@@ -65,33 +74,52 @@ module Scene =
 
         go 0 ray colour
 
-    let renderPixel (scene : Scene) (rand : Random) (camera : Camera) maxWidthCoord maxHeightCoord row col =
+    let renderPixel (scene : Scene) (rand : FloatProducer) (camera : Camera) maxWidthCoord maxHeightCoord row col =
         // Where does this pixel correspond to, on the imaginary canvas?
         // For the early prototype, we'll just take the upper right quadrant
         // from the camera.
-        let pixels =
-            Array.init camera.SamplesPerPixel (fun _ ->
-                // TODO make this be deterministic
-                let rand1 = Float.random rand
-                let landingPoint =
-                    ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
-                let pointOnXAxis =
-                    landingPoint
-                    |> Ray.walkAlong camera.ViewportXAxis
-                let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
-                let rand2 = Float.random rand
-                let endPoint =
-                    ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
-                    |> Ray.walkAlong toWalkUp
-                let ray =
-                    Ray.make' (Ray.origin camera.View) (Point.difference { ComeFrom = Ray.origin camera.View ; EndUpAt = endPoint })
-                    |> Option.get
+        let stats = PixelStats.empty ()
 
-                let result = traceRay 150 scene ray Colour.White
-                result
-            )
+        // n.b. not thread safe
+        let traceOnce () =
+            let struct(rand1, rand2) = rand.GetTwo ()
+            let landingPoint =
+                ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
+            let pointOnXAxis =
+                landingPoint
+                |> Ray.walkAlong camera.ViewportXAxis
+            let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
+            let endPoint =
+                ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
+                |> Ray.walkAlong toWalkUp
+            let ray =
+                Ray.make' (Ray.origin camera.View) (Point.difference { ComeFrom = Ray.origin camera.View ; EndUpAt = endPoint })
+                |> Option.get
 
-        Pixel.average pixels
+            let result = traceRay 150 scene ray Colour.White
+            PixelStats.add result stats
+
+        for _ in 1..5 do
+            traceOnce ()
+
+        let oldMean = PixelStats.mean stats
+
+        for _ in 1..5 do
+            traceOnce ()
+
+        let newMean = PixelStats.mean stats
+        let difference = Pixel.difference newMean oldMean
+
+        if difference < 2 then
+           // The mean didn't really change when we added another five samples; assume it's not going to change
+           // with more.
+           newMean
+        else
+
+            for _ in 1..camera.SamplesPerPixel - 10 do
+                traceOnce ()
+
+            PixelStats.mean stats
 
     let render
         (progressIncrement : float<progress> -> unit)
@@ -101,7 +129,7 @@ module Scene =
         (s : Scene)
         : float<progress> * Image
         =
-        let rand = Random ()
+        let rand = FloatProducer (Random ())
         // For each pixel in the output, send a ray from the camera
         // in the direction of that pixel.
         let rowsIter = 2 * maxHeightCoord + 1

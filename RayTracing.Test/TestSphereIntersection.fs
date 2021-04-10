@@ -19,18 +19,14 @@ module TestSphereIntersection =
     [<Test>]
     let ``Intersection of sphere and ray does lie on both`` () =
         let property (ray : Ray, sphere : Sphere) : bool =
-            let intersections = Sphere.intersections sphere ray Colour.White
+            let intersections = Sphere.firstIntersection sphere ray Colour.White
             intersections
-            |> Seq.forall (fun (p, _, _) ->
+            |> Option.map (fun (p, _) ->
                 let rayOk = Ray.liesOn p ray
                 let sphereOk = Sphere.liesOn p sphere
                 rayOk && sphereOk
             )
-            &&
-            intersections
-            |> Array.map (fun (intersection, _, _) -> Vector.normSquared (Point.difference { ComeFrom = Ray.origin ray ; EndUpAt = intersection }))
-            |> Seq.pairwise
-            |> Seq.forall (fun (i, j) -> Float.compare i j = Less)
+            |> Option.defaultValue true
 
         property
         |> Prop.forAll (Arb.fromGen (Gen.zip TestUtils.rayGen sphere))
@@ -43,18 +39,14 @@ module TestSphereIntersection =
             |> Option.get
         let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Colour.White)) (Point.make -5.688391601 -5.360125644 9.074300761) 8.199747973
 
-        let intersections = Sphere.intersections sphere ray Colour.White
+        let intersections = Sphere.firstIntersection sphere ray Colour.White
 
         intersections
-        |> Array.map (fun (intersection, _, _) -> Vector.normSquared (Point.difference { ComeFrom = Ray.origin ray ; EndUpAt = intersection }))
-        |> Seq.pairwise
-        |> Seq.forall (fun (i, j) -> Float.compare i j = Less)
+        |> Option.map (fun (p, _) -> Ray.liesOn p ray)
+        |> Option.defaultValue true
         |> shouldEqual true
 
         intersections
-        |> Seq.forall (fun (p, _, _) -> Ray.liesOn p ray)
-        |> shouldEqual true
-
-        intersections
-        |> Seq.forall (fun (p, _, _) -> Sphere.liesOn p sphere)
+        |> Option.map (fun (p, _) -> Sphere.liesOn p sphere)
+        |> Option.defaultValue true
         |> shouldEqual true

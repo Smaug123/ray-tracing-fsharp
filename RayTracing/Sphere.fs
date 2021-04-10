@@ -26,11 +26,11 @@ type SphereStyle =
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
     /// Fuzz must be between 0 (no fuzziness) and 1 (lots of fuzziness)
-    | FuzzedReflection of  albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * Random
+    | FuzzedReflection of  albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * FloatProducer
     /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
-    | LambertReflection of albedo : float<albedo> * colour : Pixel * Random
+    | LambertReflection of albedo : float<albedo> * colour : Pixel * FloatProducer
 
 type Orientation =
     | Inside
@@ -69,7 +69,7 @@ module Sphere =
                 | Greater ->
                     normal
 
-            let fuzzedReflection (colour : Pixel) (albedo : float<albedo>) (fuzz : (float<fuzz> * Random) option) =
+            let fuzzedReflection (colour : Pixel) (albedo : float<albedo>) (fuzz : (float<fuzz> * FloatProducer) option) =
                 let plane =
                     Plane.makeSpannedBy normal incomingRay
                     |> Plane.orthonormalise
@@ -145,16 +145,15 @@ module Sphere =
     let liesOn (point : Point) (sphere : Sphere) : bool =
         liesOn' sphere.Centre sphere.Radius point
 
-    /// Returns the intersections of this ray with this sphere.
-    /// The nearest intersection is returned first, if there are multiple.
+    /// Returns the nearest intersection of this ray with this sphere.
     /// Does not return any intersections which are behind us.
     /// If the sphere is made of a material which does not re-emit light, you'll
     /// get a None for the outgoing ray.
-    let intersections
+    let firstIntersection
         (sphere : Sphere)
         (ray : Ray)
         (incomingColour : Pixel)
-        : (Point * Ray option * Pixel) array
+        : (Point * (unit -> Ray option * Pixel)) option
         =
         let difference =
             Point.difference { EndUpAt = Ray.origin ray ; ComeFrom = sphere.Centre }
@@ -165,33 +164,25 @@ module Sphere =
 
         let discriminant = (b * b) - (4.0 * c)
 
-        let ts =
+        let intersectionPoint =
             match Float.compare discriminant 0.0 with
             | Comparison.Equal ->
-                [|
-                    - (b / 2.0)
-                |]
-            | Comparison.Less -> [||]
+                Some (-(b / 2.0))
+            | Comparison.Less -> None
             | Comparison.Greater ->
                 let intermediate = sqrt discriminant
-                [|
-                    (intermediate - b) / 2.0 ;
-                    - (b + intermediate) / 2.0
-                |]
+                let i1 = (intermediate - b) / 2.0
+                let i2 = - (b + intermediate) / 2.0
+                match Float.compare i1 i2 with
+                | Less -> i1
+                | Greater -> i2
+                | Equal -> i1
+                |> Some
+        match intersectionPoint with
+        | None -> None
+        | Some i ->
             // Don't return anything that's behind us
-            |> Array.filter (fun i -> Float.compare i 0.0 = Greater)
-        ts
-        |> function
-            | [||] -> [||]
-            | [|x|] -> [|x|]
-            | [|x ; y|] ->
-                match Float.compare x y with
-                | Less -> [|x ; y|]
-                | Equal -> failwith "Nooo"
-                | Greater -> [|y ; x|]
-            | _ -> failwith "Impossible"
-        |> Array.map (fun pos ->
-            let strikePoint = Ray.walkAlong ray pos
-            let outgoing, colour = sphere.Reflection ray incomingColour strikePoint
-            strikePoint, outgoing, colour
-        )
+            if Float.compare i 0.0 = Greater then
+                let strikePoint = Ray.walkAlong ray i
+                Some (strikePoint, fun () -> sphere.Reflection ray incomingColour strikePoint)
+            else None

@@ -7,6 +7,25 @@ type Comparison =
     | Equal
     | Less
 
+type FloatProducer (rand : Random) =
+    let locker = obj ()
+
+    member _.Get () : float =
+        lock locker (fun () ->
+            rand.NextDouble ()
+        )
+
+    member _.GetTwo () : struct(float * float) =
+        lock locker (fun () ->
+            rand.NextDouble (), rand.NextDouble()
+        )
+
+    member _.GetThree () : struct(float * float * float) =
+        lock locker (fun () ->
+            rand.NextDouble (), rand.NextDouble(), rand.NextDouble()
+        )
+
+
 [<RequireQualifiedAccess>]
 module Float =
 
@@ -15,13 +34,6 @@ module Float =
 
     let inline equal (a : float) (b : float) : bool =
         abs (a - b) < tolerance
-
-    let lockObj = obj ()
-    let inline random (rand : Random) : float =
-        let rand = lock lockObj (fun () ->
-            rand.Next ()
-        )
-        float (abs rand) / float Int32.MaxValue
 
     let inline compare (a : float) (b : float) : Comparison =
         if abs (a - b) < tolerance then Comparison.Equal

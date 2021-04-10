@@ -11,8 +11,8 @@ type InfinitePlaneStyle =
     /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
-    | LambertReflection of albedo : float<albedo> * colour : Pixel * Random
-    | FuzzedReflection of albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * Random
+    | LambertReflection of albedo : float<albedo> * colour : Pixel * FloatProducer
+    | FuzzedReflection of albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * FloatProducer
 
 type InfinitePlane =
     {
@@ -27,30 +27,26 @@ type InfinitePlane =
 [<RequireQualifiedAccess>]
 module InfinitePlane =
 
-    /// Returns the intersections of this ray with this plane.
-    /// The nearest intersection is returned first, if there are multiple.
+    /// Returns the intersection of this ray with this plane, or None if none exists or the ray is in the plane.
     /// Does not return any intersections which are behind us.
     /// If the plane is made of a material which does not re-emit light, you'll
     /// get a None for the outgoing ray.
-    let intersections
+    let intersection
         (plane : InfinitePlane)
         (ray : Ray)
         (incomingColour : Pixel)
-        : (Point * Ray option * Pixel) array
+        : (Point * (unit -> Ray option * Pixel)) option
         =
-        // ((ray.Origin - plane.Point) + t ray.Vector) . plane.Normal = 0
-
         let rayVec = Ray.vector ray
         let denominator = UnitVector.dot plane.Normal rayVec
-        if Float.equal denominator 0.0 then [||]
+        if Float.equal denominator 0.0 then None
         else
             let t = (UnitVector.dot' plane.Normal (Point.difference { EndUpAt = plane.Point ; ComeFrom = Ray.origin ray })) / denominator
             match Float.compare t 0.0 with
             | Greater ->
                 let strikePoint = Ray.walkAlong ray t
-                let outgoing, newColour = plane.Reflection ray incomingColour strikePoint
-                [| strikePoint, outgoing, newColour |]
-            | _ -> [||]
+                Some (strikePoint, fun () -> plane.Reflection ray incomingColour strikePoint)
+            | _ -> None
 
     let reflection
         (style : InfinitePlaneStyle)
@@ -59,7 +55,7 @@ module InfinitePlane =
         : Ray -> Pixel -> Point -> Ray option * Pixel
         =
         fun incomingRay incomingColour strikePoint ->
-            let fuzzIt albedo colour (fuzz : (float<fuzz> * Random) option) =
+            let fuzzIt albedo colour (fuzz : (float<fuzz> * FloatProducer) option) =
                 let plane =
                     Plane.makeSpannedBy (Ray.make strikePoint normal) incomingRay
                     |> Plane.orthonormalise

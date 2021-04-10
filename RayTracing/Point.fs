@@ -4,13 +4,12 @@ open System
 
 /// An n-dimensional point.
 /// We don't let you compare these for equality, because floats are hard.
-[<NoEquality ; NoComparison>]
-[<Struct>]
+[<NoEquality ; NoComparison ; Struct>]
 type Point =
     private
     | Point of struct(float * float * float)
 
-[<NoEquality ; NoComparison>]
+[<NoEquality ; NoComparison ; Struct>]
 type Vector =
     private
     | Vector of struct(float * float * float)
@@ -19,20 +18,16 @@ type UnitVector = UnitVector of Vector
 
 [<RequireQualifiedAccess>]
 module Vector =
-    let dot (p1 : Vector) (p2 : Vector) : float =
-        match p1, p2 with
-        | Vector (x, y, z), Vector (a, b, c) ->
-            x * a + y * b + z * c
+    let dot (Vector (x, y, z)) (Vector (a, b, c)) : float =
+        x * a + y * b + z * c
 
     let scale (scale : float) (vec : Vector) : Vector =
         match vec with
         | Vector (a, b, c) ->
             Vector (scale * a, scale * b, scale * c)
 
-    let difference (v1 : Vector) (v2 : Vector) : Vector =
-        match v1, v2 with
-        | Vector (a, b, c), Vector (x, y, z) ->
-            Vector (a - x, b - y, c - z)
+    let difference (Vector (a, b, c)) (Vector (x, y, z)) : Vector =
+        Vector (a - x, b - y, c - z)
 
     let unitise (vec : Vector) : UnitVector option =
         let dot = dot vec vec
@@ -45,24 +40,23 @@ module Vector =
     let normSquared (vec : Vector) : float =
         dot vec vec
 
-    let equal (v1 : Vector) (v2 : Vector) : bool =
-        match v1, v2 with
-        | Vector (a, b, c), Vector (x, y, z) ->
-            Float.equal a x && Float.equal b y && Float.equal c z
+    let equal (Vector (a, b, c)) (Vector (x, y, z)) : bool =
+        Float.equal a x && Float.equal b y && Float.equal c z
 
     let make (x : float) (y : float) (z : float) =
         Vector (x, y, z)
 
 [<RequireQualifiedAccess>]
 module UnitVector =
-    let rec random (rand : Random) (dimension : int) : UnitVector =
-        let x = (2.0 * Float.random rand) - 1.0
-        let y = (2.0 * Float.random rand) - 1.0
-        let z = (2.0 * Float.random rand) - 1.0
+    let rec random (floatProducer : FloatProducer) (dimension : int) : UnitVector =
+        let struct(rand1, rand2, rand3) = floatProducer.GetThree ()
+        let x = (2.0 * rand1) - 1.0
+        let y = (2.0 * rand2) - 1.0
+        let z = (2.0 * rand3) - 1.0
         Vector.make x y z
         |> Vector.unitise
         |> function
-            | None -> random rand dimension
+            | None -> random floatProducer dimension
             | Some result -> result
 
     let inline dot (UnitVector a) (UnitVector b) = Vector.dot a b
@@ -91,20 +85,14 @@ module Point =
 
     let xCoordinate (Point (x, _, _)) = x
 
-    let sum (p1 : Point) (p2 : Point) : Point =
-        match p1, p2 with
-        | Point (a, b, c), Point (x, y, z) ->
-            Point (a + x, b + y, c + z)
+    let sum (Point (a, b, c)) (Point (x, y, z)) : Point =
+        Point (a + x, b + y, c + z)
 
-    let difference { EndUpAt = p1 ; ComeFrom = p2 } : Vector =
-        match p1, p2 with
-        | Point (a, b, c), Point (x, y, z) ->
-            Vector (a - x, b - y, c - z)
+    let difference { EndUpAt = Point (a, b, c) ; ComeFrom = Point (x, y, z) } : Vector =
+        Vector (a - x, b - y, c - z)
 
-    let equal (p1 : Point) (p2 : Point) : bool =
-        match p1, p2 with
-        | Point (a, b, c), Point (x, y, z) ->
-            Float.equal a x && Float.equal b y && Float.equal c z
+    let equal (Point (a, b, c)) (Point (x, y, z)) : bool =
+        Float.equal a x && Float.equal b y && Float.equal c z
 
     let make (x : float) (y : float) (z : float) = Point (x, y, z)
     let inline dimension _ = 3

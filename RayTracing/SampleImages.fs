@@ -8,6 +8,7 @@ type SampleImages =
     | ShinyFloor
     | FuzzyFloor
     | InsideSphere
+    | TotalRefraction
     static member Parse (s : string) =
         match s with
         | "spheres" -> SampleImages.Spheres
@@ -15,6 +16,7 @@ type SampleImages =
         | "shiny-floor" -> SampleImages.ShinyFloor
         | "fuzzy-floor" -> SampleImages.FuzzyFloor
         | "inside-sphere" -> SampleImages.InsideSphere
+        | "total-refraction" -> SampleImages.TotalRefraction
         | s -> failwithf "Unrecognised arg: %s" s
 
 [<RequireQualifiedAccess>]
@@ -129,6 +131,33 @@ module SampleImages =
         }
         |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
 
+    let totalRefraction (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+        let random = Random () |> FloatProducer
+        let aspectRatio = 16.0 / 9.0
+        let origin = Point.make 0.0 0.0 0.0
+        let camera =
+            Camera.makeBasic 1.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+        let pixels = 500
+        {
+            Objects =
+                [|
+                    // Floor
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.5<albedo>, { Red = 204uy ; Green = 204uy ; Blue = 0uy }, random)) (Point.make 0.0 -100.5 1.0) 100.0)
+
+                    // Right sphere
+                    Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 204uy ; Green = 153uy ; Blue = 51uy })) (Point.make 1.0 0.0 1.0) 0.5)
+                    // Middle sphere
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, { Red = 25uy ; Green = 50uy ; Blue = 120uy }, random)) (Point.make 0.0 0.0 1.0) 0.5)
+                    // Left sphere
+                    Hittable.Sphere (Sphere.make (SphereStyle.Dielectric (1.0<albedo>, Colour.White, 0.666<ior>, 1.0<prob>, random)) (Point.make -1.0 0.0 1.0) 0.5)
+                    Hittable.Sphere (Sphere.make (SphereStyle.Dielectric (1.0<albedo>, Colour.White, 1.5<ior>, 1.0<prob>, random)) (Point.make -1.0 0.0 1.0) 0.4)
+
+                    // Light around us
+                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
+                |]
+        }
+        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+
     let get (s : SampleImages) : (float<progress> -> unit) -> float<progress> * Image =
         match s with
         | Gradient -> gradient
@@ -136,3 +165,4 @@ module SampleImages =
         | ShinyFloor -> shinyPlane
         | FuzzyFloor -> fuzzyPlane
         | InsideSphere -> insideSphere
+        | TotalRefraction -> totalRefraction

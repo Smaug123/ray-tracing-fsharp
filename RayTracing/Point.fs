@@ -21,6 +21,9 @@ module Vector =
     let dot (Vector (x, y, z)) (Vector (a, b, c)) : float =
         x * a + y * b + z * c
 
+    let sum (Vector (a, b, c)) (Vector (d, e, f)) =
+        Vector (a + d, b + e, c + f)
+
     let scale (scale : float) (vec : Vector) : Vector =
         match vec with
         | Vector (a, b, c) ->
@@ -89,6 +92,9 @@ module Point =
         Point (a + x, b + y, c + z)
 
     let difference { EndUpAt = Point (a, b, c) ; ComeFrom = Point (x, y, z) } : Vector =
+        Vector (a - x, b - y, c - z)
+
+    let differenceToThenFrom (Point (a, b, c)) (Point (x, y, z)) : Vector =
         Vector (a - x, b - y, c - z)
 
     let equal (Point (a, b, c)) (Point (x, y, z)) : bool =

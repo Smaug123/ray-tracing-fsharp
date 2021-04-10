@@ -51,6 +51,12 @@ module Colour =
             Green = 255uy
             Blue = 0uy
         }
+    let HotPink =
+        {
+            Red = 205uy
+            Green = 105uy
+            Blue = 180uy
+        }
 
 type PixelStats =
     private
@@ -107,7 +113,7 @@ module Pixel =
         }
 
     /// albedo should be between 0 and 1.
-    let darken (p : Pixel) (albedo : float<albedo>) : Pixel =
+    let darken (albedo : float<albedo>) (p : Pixel) : Pixel =
         let albedo = albedo / 1.0<albedo>
         {
             Red = (float p.Red) * albedo |> Math.Round |> byte

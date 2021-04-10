@@ -2,6 +2,7 @@ namespace RayTracing
 
 open System
 
+[<NoComparison>]
 type Comparison =
     | Greater
     | Equal
@@ -29,11 +30,15 @@ type FloatProducer (rand : Random) =
 [<RequireQualifiedAccess>]
 module Float =
 
-    let Pi = acos -1.0
     let tolerance = 0.00000001
 
     let inline equal (a : float) (b : float) : bool =
         abs (a - b) < tolerance
+
+    // TODO: use of this method appears to slow everything down
+    // by a factor of 4 - why?
+    let inline positive (a : float) : bool =
+        a > tolerance
 
     let inline compare (a : float) (b : float) : Comparison =
         if abs (a - b) < tolerance then Comparison.Equal

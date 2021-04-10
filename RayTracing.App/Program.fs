@@ -10,14 +10,7 @@ module Program =
 
         member this.Increment (prog : float<progress>) = this.Increment (prog / 1.0<progress>)
 
-    let go (sample : SampleImages) (ctx : ProgressContext) =
-        let fs = FileSystem ()
-
-        let ppmOutput =
-            fs.Path.GetTempFileName ()
-            |> fun s -> fs.Path.ChangeExtension (s, ".ppm")
-            |> fs.FileInfo.FromFileName
-
+    let go (sample : SampleImages) (ppmOutput : IFileInfo) (ctx : ProgressContext) =
         let renderTask = ctx.AddTask "[green]Generating image[/]"
         let writeUnorderedTask = ctx.AddTask "[green]Writing unordered pixels[/]"
         let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
@@ -31,7 +24,7 @@ module Program =
         arrangeTask.MaxValue <- maxProgress / 1.0<progress>
         writeTask.MaxValue <- maxProgress / 1.0<progress>
 
-        let tempOutput, await = ImageOutput.toPpm writeUnorderedTask.Increment image fs
+        let tempOutput, await = ImageOutput.toPpm writeUnorderedTask.Increment image ppmOutput.FileSystem
         AnsiConsole.WriteLine (sprintf "Temporary output being written eagerly to '%s'" tempOutput.FullName)
 
         async {
@@ -47,10 +40,15 @@ module Program =
 
     [<EntryPoint>]
     let main (argv : string []) : int =
-        let sample =
-            argv
-            |> Array.exactlyOne
-            |> SampleImages.Parse
+        let fs = FileSystem ()
+        let sample, output =
+            match argv with
+            | [| name |] ->
+                SampleImages.Parse name,
+                fs.Path.GetTempFileName () |> fun i -> fs.Path.ChangeExtension (i, ".ppm") |> fs.FileInfo.FromFileName
+            | [| name ; output |] ->
+                SampleImages.Parse name, fs.FileInfo.FromFileName output
+            | _ -> failwithf "Expected two args 'sample name' 'output file', got %+A"  argv
 
         let prog =
             AnsiConsole
@@ -66,5 +64,5 @@ module Program =
         prog.HideCompleted <- false
         prog.AutoClear <- false
 
-        prog.Start (go sample)
+        prog.Start (go sample output)
         0

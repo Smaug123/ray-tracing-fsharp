@@ -82,7 +82,11 @@ module ImageOutput =
                             return ()
                         }
                     )
+#if DEBUG
+                    |> Async.Sequential
+#else
                     |> Async.Parallel
+#endif
                     |> Async.Ignore
                 return! go writer (rowNum + 1) rowEnum
             }
@@ -100,7 +104,11 @@ module ImageOutput =
         async {
             let maxRow, maxCol = pixels |> Seq.map (fun (KeyValue(k, _)) -> k) |> Seq.max
             let pixels =
+#if DEBUG
                 Array.init (maxRow + 1) (fun row ->
+#else
+                Array.Parallel.init (maxRow + 1) (fun row ->
+#endif
                     Array.init (maxCol + 1) (fun col ->
                         incrementProgress 1.0<progress>
                         pixels.[row, col]

@@ -57,7 +57,7 @@ module Scene =
         : Pixel
         =
         let rec go (bounces : int) (ray : Ray) (colour : Pixel) : Pixel =
-            if bounces > maxCount then Colour.Black else
+            if bounces > maxCount then Colour.HotPink else
 
             let thingsWeHit = hitObject scene ray colour
             match thingsWeHit with

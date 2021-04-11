@@ -101,7 +101,7 @@ module Scene =
                 ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
                 |> Ray.walkAlong toWalkUp
             let ray =
-                Ray.make' (Ray.origin camera.View) (Point.difference { ComeFrom = Ray.origin camera.View ; EndUpAt = endPoint })
+                Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))
                 |> Option.get
 
             let result = traceRay 150 scene ray Colour.White
@@ -142,7 +142,7 @@ module Scene =
         // in the direction of that pixel.
         let rowsIter = 2 * maxHeightCoord + 1
         let colsIter = 2 * maxWidthCoord + 1
-        1.0<progress> * float (rowsIter * colsIter),
+        1.0<progress> * float rowsIter,
         {
             RowCount = rowsIter
             ColCount = colsIter

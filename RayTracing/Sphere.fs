@@ -73,7 +73,7 @@ module Sphere =
             let normal = normal strikePoint
             // If the incoming ray is on the sphere, then we have to be an internal ray.
             let inside, normal =
-                match Float.compare (Vector.normSquared (Point.difference { ComeFrom = Ray.origin incomingRay ; EndUpAt = centre })) (radius * radius) with
+                match Float.compare (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingRay))) (radius * radius) with
                 | Equal
                 | Less ->
                     // Point is inside or on the sphere so we are coming from within
@@ -98,7 +98,7 @@ module Sphere =
                         let normalComponent = - UnitVector.dot plane.V1 (Ray.vector incomingRay)
                         let tangentComponent = (UnitVector.dot plane.V2 (Ray.vector incomingRay))
                         let dest = Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2) tangentComponent
-                        Point.difference { ComeFrom = strikePoint ; EndUpAt = dest }
+                        Point.differenceToThenFrom dest strikePoint
                         |> Ray.make' strikePoint
 
                 let outgoing =
@@ -109,7 +109,7 @@ module Sphere =
                         let offset = UnitVector.random rand (Point.dimension centre)
                         let sphereCentre = Ray.walkAlong outgoing 1.0
                         let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
-                        Point.difference { ComeFrom = strikePoint ; EndUpAt = target }
+                        Point.differenceToThenFrom target strikePoint
                         |> Ray.make' strikePoint
 
                 let darkened =
@@ -137,7 +137,7 @@ module Sphere =
                     let sphereCentre = Ray.walkAlong normal 1.0
                     let offset = UnitVector.random rand (Point.dimension sphereCentre)
                     let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
-                    Point.difference { EndUpAt = target ; ComeFrom = strikePoint }
+                    Point.differenceToThenFrom target strikePoint
                     |> Ray.make' strikePoint
 
                 let newColour =

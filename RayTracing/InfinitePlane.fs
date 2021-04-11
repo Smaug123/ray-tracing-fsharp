@@ -1,7 +1,5 @@
 namespace RayTracing
 
-open System
-
 type InfinitePlaneStyle =
     /// An emitter of light.
     | LightSource of Pixel
@@ -40,7 +38,7 @@ module InfinitePlane =
         let denominator = UnitVector.dot plane.Normal rayVec
         if Float.equal denominator 0.0 then ValueNone
         else
-            let t = (UnitVector.dot' plane.Normal (Point.difference { EndUpAt = plane.Point ; ComeFrom = Ray.origin ray })) / denominator
+            let t = (UnitVector.dot' plane.Normal (Point.differenceToThenFrom plane.Point (Ray.origin ray))) / denominator
             if Float.positive t then
                 ValueSome t
             else ValueNone
@@ -101,7 +99,7 @@ module InfinitePlane =
                     let sphereCentre = Ray.walkAlong (Ray.make strikePoint normal) 1.0
                     let offset = UnitVector.random rand (Point.dimension pointOnPlane)
                     let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
-                    Point.difference { EndUpAt = target ; ComeFrom = strikePoint }
+                    Point.differenceToThenFrom target strikePoint
                     |> Ray.make' strikePoint
 
                 let newColour =

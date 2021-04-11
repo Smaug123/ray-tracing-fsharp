@@ -76,13 +76,6 @@ module UnitVector =
             Vector (0.0, 0.0, 1.0) |> UnitVector
         |]
 
-[<Struct>]
-type Difference =
-    {
-        EndUpAt : Point
-        ComeFrom : Point
-    }
-
 [<RequireQualifiedAccess>]
 module Point =
 
@@ -90,9 +83,6 @@ module Point =
 
     let sum (Point (a, b, c)) (Point (x, y, z)) : Point =
         Point (a + x, b + y, c + z)
-
-    let difference { EndUpAt = Point (a, b, c) ; ComeFrom = Point (x, y, z) } : Vector =
-        Vector (a - x, b - y, c - z)
 
     let differenceToThenFrom (Point (a, b, c)) (Point (x, y, z)) : Vector =
         Vector (a - x, b - y, c - z)

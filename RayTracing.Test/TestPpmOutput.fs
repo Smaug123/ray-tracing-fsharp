@@ -34,7 +34,7 @@ module TestRayTracing =
                     async { return Colour.Black }
                 |]
             |]
-            |> Image.make 3 2
+            |> Image.make 2 3
 
         let outputFile =
             fs.Path.GetTempFileName ()
@@ -44,8 +44,8 @@ module TestRayTracing =
 
         async {
             do! await
-            let! pixelMap = ImageOutput.readPixelMap ignore tempOutput
-            let! arr = ImageOutput.toArray ignore pixelMap
+            let! pixelMap = ImageOutput.readPixelMap ignore tempOutput (Image.rowCount image) (Image.colCount image)
+            let arr = ImageOutput.assertComplete pixelMap
             do! ImageOutput.writePpm false ignore arr outputFile
             return ()
         }

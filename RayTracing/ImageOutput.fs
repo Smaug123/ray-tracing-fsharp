@@ -37,19 +37,23 @@ module ImageOutput =
     // Read in an integer. After execution, the stream has consumed an extra character
     // after that integer.
     let consumeAsciiInteger (s : Stream) : int voption =
-        let rec go (answer : int) =
+        let mutable answer = 0
+        let mutable keepGoing = true
+        let mutable toRet = ValueNone
+        while keepGoing do
             let i = s.ReadByte ()
-            if i < 0 then ValueNone else
+            if i < 0 then keepGoing <- false else
             // '0' is 48
             // '9' is 57
             if 48 <= i && i <= 57 then
-                go (10 * answer + (i - 48))
+                answer <- (10 * answer + (i - 48))
             else
-                ValueSome answer
-        go 0
+                toRet <- ValueSome answer
+                keepGoing <- false
+        toRet
 
-    let readPixelMap (incrementProgress : float<progress> -> unit) (progress : IFileInfo) : Async<IReadOnlyDictionary<_, _>> =
-        let rec go (dict : Dictionary<_, _>) (reader : Stream) =
+    let readPixelMap (incrementProgress : float<progress> -> unit) (progress : IFileInfo) (numRows : int) (numCols : int) : Async<Pixel ValueOption [] []> =
+        let rec go (dict : _ [] []) (reader : Stream) =
             let row = consumeAsciiInteger reader
             match row with
             | ValueNone -> dict
@@ -68,15 +72,15 @@ module ImageOutput =
             if b = -1 then dict else
 
             incrementProgress 1.0<progress>
-            dict.Add ((row, col), { Red = byte r ; Green = byte g ; Blue = byte b })
+            dict.[row].[col] <- ValueSome { Red = byte r ; Green = byte g ; Blue = byte b }
 
             go dict reader
 
         async {
             use stream = progress.FileSystem.File.OpenRead progress.FullName
-            let result = Dictionary<int * int, _> ()
+            let result = Array.init numRows (fun _ -> Array.zeroCreate numCols)
             let result = go result stream
-            return result :> IReadOnlyDictionary<_,_>
+            return result
         }
 
     let resume (incrementProgress : float<progress> -> unit) (soFar : IReadOnlyDictionary<int * int, Pixel>) (image : Image) (fs : IFileSystem) : IFileInfo * Async<unit> =
@@ -123,23 +127,6 @@ module ImageOutput =
             return! go outputStream 0 enumerator
         }
 
-    let toArray (incrementProgress : float<progress> -> unit) (pixels : IReadOnlyDictionary<int * int, Pixel>) : Async<Pixel [] []> =
-        async {
-            let maxRow, maxCol = pixels |> Seq.map (fun (KeyValue(k, _)) -> k) |> Seq.max
-            let pixels =
-#if DEBUG
-                Array.init (maxRow + 1) (fun row ->
-#else
-                Array.Parallel.init (maxRow + 1) (fun row ->
-#endif
-                    Array.init (maxCol + 1) (fun col ->
-                        incrementProgress 1.0<progress>
-                        pixels.[row, col]
-                    )
-                )
-            return pixels
-        }
-
     let writePpm (gammaCorrect : bool) (incrementProgress : float<progress> -> unit) (pixels : Pixel [] []) (output : IFileInfo) : Async<unit> =
         let maxRow = pixels.Length
         let maxCol = pixels.[0].Length
@@ -167,6 +154,10 @@ module ImageOutput =
                 writer.Write "\n"
             writeRow (pixels.Length - 1)
         }
+
+    let assertComplete (image : Pixel ValueOption [] []) : Pixel [] [] =
+        image
+        |> Array.map (Array.map ValueOption.get)
 
     /// Write out this image to a temporary file, flushing intermediate work as quickly as possible.
     /// Await the async to know when the entire image is complete.

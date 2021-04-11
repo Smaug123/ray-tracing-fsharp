@@ -22,6 +22,8 @@ module Image =
     let render (i : Image) : (Pixel * Async<unit>) [] seq =
         i.Rows
         |> Seq.map (fun imageRow ->
+            if imageRow.Length <> i.ColCount then
+                failwithf "Thought the image had %i columns, got a pixel array with %i columns" i.ColCount imageRow.Length
             let outputRow = Array.zeroCreate<Pixel * Async<unit>> i.ColCount
             let doIt =
                 imageRow

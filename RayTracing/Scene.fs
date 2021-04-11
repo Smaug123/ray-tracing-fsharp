@@ -82,38 +82,39 @@ module Scene =
 
         go 0 ray colour
 
+    /// Trace a ray to this one pixel, updating the PixelStats with the result.
+    /// n.b. not thread safe
+    let private traceOnce (scene : Scene) (rand : FloatProducer) (camera : Camera) (maxWidthCoord : int) (maxHeightCoord : int) row col stats =
+        let struct(rand1, rand2) = rand.GetTwo ()
+        let landingPoint =
+            ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
+        let pointOnXAxis =
+            landingPoint
+            |> Ray.walkAlong camera.ViewportXAxis
+        let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
+        let endPoint =
+            ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
+            |> Ray.walkAlong toWalkUp
+        let ray =
+            Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))
+            |> Option.get
+
+        let result = traceRay 150 scene ray Colour.White
+        PixelStats.add result stats
+
     let renderPixel (scene : Scene) (rand : FloatProducer) (camera : Camera) maxWidthCoord maxHeightCoord row col =
         // Where does this pixel correspond to, on the imaginary canvas?
         // For the early prototype, we'll just take the upper right quadrant
         // from the camera.
         let stats = PixelStats.empty ()
 
-        // n.b. not thread safe
-        let traceOnce () =
-            let struct(rand1, rand2) = rand.GetTwo ()
-            let landingPoint =
-                ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
-            let pointOnXAxis =
-                landingPoint
-                |> Ray.walkAlong camera.ViewportXAxis
-            let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
-            let endPoint =
-                ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
-                |> Ray.walkAlong toWalkUp
-            let ray =
-                Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))
-                |> Option.get
-
-            let result = traceRay 150 scene ray Colour.White
-            PixelStats.add result stats
-
         for _ in 1..5 do
-            traceOnce ()
+            traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let oldMean = PixelStats.mean stats
 
         for _ in 1..5 do
-            traceOnce ()
+            traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let newMean = PixelStats.mean stats
         let difference = Pixel.difference newMean oldMean
@@ -125,7 +126,7 @@ module Scene =
         else
 
             for _ in 1..camera.SamplesPerPixel - 10 do
-                traceOnce ()
+                traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
             PixelStats.mean stats
 

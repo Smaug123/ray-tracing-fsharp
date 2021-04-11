@@ -14,14 +14,12 @@ module Program =
         let renderTask = ctx.AddTask "[green]Generating image[/]"
         let writeUnorderedTask = ctx.AddTask "[green]Writing unordered pixels[/]"
         let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
-        let arrangeTask = ctx.AddTask "[green]Rearranging pixels into correct order[/]"
         let writeTask = ctx.AddTask "[green]Writing PPM file[/]"
 
         let maxProgress, image = SampleImages.get sample renderTask.Increment
         renderTask.MaxValue <- maxProgress / 1.0<progress>
         writeUnorderedTask.MaxValue <- maxProgress / 1.0<progress>
         readTask.MaxValue <- maxProgress / 1.0<progress>
-        arrangeTask.MaxValue <- maxProgress / 1.0<progress>
         writeTask.MaxValue <- maxProgress / 1.0<progress>
 
         let tempOutput, await = ImageOutput.toPpm writeUnorderedTask.Increment image ppmOutput.FileSystem
@@ -29,9 +27,9 @@ module Program =
 
         async {
             do! await
-            let! pixelMap = ImageOutput.readPixelMap readTask.Increment tempOutput
-            let! arr = ImageOutput.toArray arrangeTask.Increment pixelMap
-            do! ImageOutput.writePpm true writeTask.Increment arr ppmOutput
+            let! pixelMap = ImageOutput.readPixelMap readTask.Increment tempOutput (Image.rowCount image) (Image.colCount image)
+            let pixelMap = ImageOutput.assertComplete pixelMap
+            do! ImageOutput.writePpm true writeTask.Increment pixelMap ppmOutput
             tempOutput.Delete ()
             return ()
         }

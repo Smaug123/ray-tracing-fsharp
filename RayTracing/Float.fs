@@ -2,22 +2,43 @@ namespace RayTracing
 
 open System
 
+[<NoComparison>]
 type Comparison =
     | Greater
     | Equal
     | Less
 
+type FloatProducer (rand : Random) =
+    let locker = obj ()
+
+    member _.Get () : float =
+        lock locker (fun () ->
+            rand.NextDouble ()
+        )
+
+    member _.GetTwo () : struct(float * float) =
+        lock locker (fun () ->
+            rand.NextDouble (), rand.NextDouble()
+        )
+
+    member _.GetThree () : struct(float * float * float) =
+        lock locker (fun () ->
+            rand.NextDouble (), rand.NextDouble(), rand.NextDouble()
+        )
+
+
 [<RequireQualifiedAccess>]
 module Float =
 
-    let Pi = acos -1.0
     let tolerance = 0.00000001
 
     let inline equal (a : float) (b : float) : bool =
         abs (a - b) < tolerance
 
-    let inline random (rand : Random) : float =
-        float (abs (rand.Next ())) / float Int32.MaxValue
+    // TODO: use of this method appears to slow everything down
+    // by a factor of 4 - why?
+    let inline positive (a : float) : bool =
+        a > tolerance
 
     let inline compare (a : float) (b : float) : Comparison =
         if abs (a - b) < tolerance then Comparison.Equal

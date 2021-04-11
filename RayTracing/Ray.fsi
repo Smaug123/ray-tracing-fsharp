@@ -9,8 +9,6 @@ module Ray =
 
     val walkAlong : Ray -> float -> Point
 
-    val between : Point -> Point -> Ray option
-
     val parallelTo : Point -> Ray -> Ray
 
     val liesOn : Point -> Ray -> bool

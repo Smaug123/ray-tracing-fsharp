@@ -10,40 +10,44 @@ module Program =
 
         member this.Increment (prog : float<progress>) = this.Increment (prog / 1.0<progress>)
 
-    let go (sample : SampleImages) (ctx : ProgressContext) =
-        let fs = FileSystem ()
+    let go (sample : SampleImages) (ppmOutput : IFileInfo) (ctx : ProgressContext) =
+        let renderTask = ctx.AddTask "[green]Generating image[/]"
+        let writeUnorderedTask = ctx.AddTask "[green]Writing unordered pixels[/]"
+        let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
+        let writeTask = ctx.AddTask "[green]Writing PPM file[/]"
 
-        let output =
-            fs.Path.GetTempFileName ()
-            |> fun s -> fs.Path.ChangeExtension (s, ".ppm")
-            |> fs.FileInfo.FromFileName
+        let maxProgress, image = SampleImages.get sample renderTask.Increment
+        renderTask.MaxValue <- maxProgress / 1.0<progress>
+        writeUnorderedTask.MaxValue <- maxProgress / 1.0<progress>
+        readTask.MaxValue <- maxProgress / 1.0<progress>
+        writeTask.MaxValue <- maxProgress / 1.0<progress>
 
-        let task = ctx.AddTask "[green]Generating image[/]"
-        let maxProgress, image = SampleImages.get sample task.Increment
-        task.MaxValue <- maxProgress / 1.0<progress>
+        let tempOutput, await = ImageOutput.toPpm writeUnorderedTask.Increment image ppmOutput.FileSystem
+        AnsiConsole.WriteLine (sprintf "Temporary output being written eagerly to '%s'" tempOutput.FullName)
 
-        let image = image |> Async.RunSynchronously
+        async {
+            do! await
+            let! pixelMap = ImageOutput.readPixelMap readTask.Increment tempOutput (Image.rowCount image) (Image.colCount image)
+            let pixelMap = ImageOutput.assertComplete pixelMap
+            do! ImageOutput.writePpm true writeTask.Increment pixelMap ppmOutput
+            tempOutput.Delete ()
+            return ()
+        }
+        |> Async.RunSynchronously
 
-        let outputTask = ctx.AddTask "[green]Writing image[/]"
-
-        let maxProgress, writer =
-            ImageOutput.toPpm outputTask.Increment image output
-
-        outputTask.MaxValue <- maxProgress / 1.0<progress>
-
-        writer |> Async.RunSynchronously
-
-        printfn "%s" output.FullName
+        printfn "%s" ppmOutput.FullName
 
     [<EntryPoint>]
     let main (argv : string []) : int =
-        let sample =
-            argv
-            |> Array.exactlyOne
-            |> function
-                | "spheres" -> SampleImages.Spheres
-                | "gradient" -> SampleImages.Gradient
-                | s -> failwithf "Unrecognised arg: %s" s
+        let fs = FileSystem ()
+        let sample, output =
+            match argv with
+            | [| name |] ->
+                SampleImages.Parse name,
+                fs.Path.GetTempFileName () |> fun i -> fs.Path.ChangeExtension (i, ".ppm") |> fs.FileInfo.FromFileName
+            | [| name ; output |] ->
+                SampleImages.Parse name, fs.FileInfo.FromFileName output
+            | _ -> failwithf "Expected two args 'sample name' 'output file', got %+A"  argv
 
         let prog =
             AnsiConsole
@@ -59,5 +63,5 @@ module Program =
         prog.HideCompleted <- false
         prog.AutoClear <- false
 
-        prog.Start (go sample)
+        prog.Start (go sample output)
         0

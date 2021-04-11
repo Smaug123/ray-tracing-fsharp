@@ -31,19 +31,19 @@ module Camera =
         (focalLength : float)
         (aspectRatio : float)
         (origin : Point)
+        (viewDirection : UnitVector)
         : Camera
         =
         let height = 2.0
         let basis = UnitVector.basis 3
-        let view =
-            basis.[2]
-            |> Ray.make origin
         let xAxis =
             basis.[0]
             |> Ray.make origin
         let yAxis =
             basis.[1]
             |> Ray.make origin
+
+        let view = Ray.make origin viewDirection
 
         {
             FocalLength = focalLength
@@ -54,5 +54,5 @@ module Camera =
                 Ray.parallelTo (Ray.walkAlong view focalLength) xAxis
             ViewportYAxis =
                 Ray.parallelTo (Ray.walkAlong view focalLength) yAxis
-            SamplesPerPixel = 10
+            SamplesPerPixel = 50
         }

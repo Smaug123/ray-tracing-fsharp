@@ -32,11 +32,11 @@ module TestUtils =
 
     let pointGen =
         Gen.three Arb.generate<NormalFloat>
-        |> Gen.map (fun (i, j, k) -> Point [| i.Get ; j.Get ; k.Get |])
+        |> Gen.map (fun (i, j, k) -> Point.make i.Get j.Get k.Get)
 
     let vectorGen =
         Gen.three Arb.generate<NormalFloat>
-        |> Gen.map (fun (i, j, k) -> Vector [| i.Get ; j.Get ; k.Get |])
+        |> Gen.map (fun (i, j, k) -> Vector.make i.Get j.Get k.Get)
 
     let unitVectorGen =
         vectorGen

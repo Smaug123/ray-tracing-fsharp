@@ -18,34 +18,38 @@ module TestRayTracing =
         let image =
             [|
                 [|
-                    { Red = 255uy; Blue = 0uy; Green = 0uy }
-                    { Red = 0uy; Blue = 0uy; Green = 255uy }
-                    { Red = 0uy; Blue = 255uy; Green = 0uy }
+                    async { return Colour.Red }
+                    async { return Colour.Green }
+                    async { return Colour.Blue }
                 |]
                 [|
-                    {
-                        Red = 255uy
-                        Blue = 0uy
-                        Green = 255uy
+                    async {
+                        return {
+                            Red = 255uy
+                            Blue = 0uy
+                            Green = 255uy
+                        }
                     }
-                    {
-                        Red = 255uy
-                        Blue = 255uy
-                        Green = 255uy
-                    }
-                    { Red = 0uy; Blue = 0uy; Green = 0uy }
+                    async { return Colour.White }
+                    async { return Colour.Black }
                 |]
             |]
-            |> Image
+            |> Image.make 2 3
 
         let outputFile =
             fs.Path.GetTempFileName ()
             |> fs.FileInfo.FromFileName
 
-        let _, writer =
-            ImageOutput.toPpm ignore image outputFile
+        let tempOutput, await = ImageOutput.toPpm ignore image fs
 
-        writer |> Async.RunSynchronously
+        async {
+            do! await
+            let! pixelMap = ImageOutput.readPixelMap ignore tempOutput (Image.rowCount image) (Image.colCount image)
+            let arr = ImageOutput.assertComplete pixelMap
+            do! ImageOutput.writePpm false ignore arr outputFile
+            return ()
+        }
+        |> Async.RunSynchronously
 
         fs.File.ReadAllText outputFile.FullName
         |> shouldEqual expected

@@ -31,7 +31,7 @@ module Program =
             do! await
             let! pixelMap = ImageOutput.readPixelMap readTask.Increment tempOutput
             let! arr = ImageOutput.toArray arrangeTask.Increment pixelMap
-            do! ImageOutput.writePpm writeTask.Increment arr ppmOutput
+            do! ImageOutput.writePpm true writeTask.Increment arr ppmOutput
             tempOutput.Delete ()
             return ()
         }

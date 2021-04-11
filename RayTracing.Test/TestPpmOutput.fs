@@ -46,7 +46,7 @@ module TestRayTracing =
             do! await
             let! pixelMap = ImageOutput.readPixelMap ignore tempOutput
             let! arr = ImageOutput.toArray ignore pixelMap
-            do! ImageOutput.writePpm ignore arr outputFile
+            do! ImageOutput.writePpm false ignore arr outputFile
             return ()
         }
         |> Async.RunSynchronously

@@ -142,7 +142,7 @@ module Scene =
         // in the direction of that pixel.
         let rowsIter = 2 * maxHeightCoord + 1
         let colsIter = 2 * maxWidthCoord + 1
-        1.0<progress> * float rowsIter,
+        1.0<progress> * float (rowsIter * colsIter),
         {
             RowCount = rowsIter
             ColCount = colsIter

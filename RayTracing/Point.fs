@@ -1,7 +1,5 @@
 namespace RayTracing
 
-open System
-
 /// An n-dimensional point.
 /// We don't let you compare these for equality, because floats are hard.
 [<NoEquality ; NoComparison ; Struct>]
@@ -92,4 +90,3 @@ module Point =
 
     let make (x : float) (y : float) (z : float) = Point (x, y, z)
     let inline dimension _ = 3
-

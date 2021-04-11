@@ -110,7 +110,6 @@ module InfinitePlane =
             | InfinitePlaneStyle.PureReflection (albedo, colour) ->
                 pureOutgoing strikePoint normal incomingRay, newColour incomingColour albedo colour
 
-
     let make (style : InfinitePlaneStyle) (pointOnPlane : Point) (normal : UnitVector) : InfinitePlane =
         {
             Point = pointOnPlane

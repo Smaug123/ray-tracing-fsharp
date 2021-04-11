@@ -47,6 +47,9 @@ module Vector =
     let make (x : float) (y : float) (z : float) =
         Vector (x, y, z)
 
+    let cross (Vector (x, y, z)) (Vector (a, b, c)) : Vector =
+        make (y * c - z * b) (z * a - x * c) (x * b - a * y)
+
 [<RequireQualifiedAccess>]
 module UnitVector =
     let rec random (floatProducer : FloatProducer) (dimension : int) : UnitVector =

@@ -48,7 +48,7 @@ module SampleImages =
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
-            Camera.makeBasic 2.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Camera.makeBasic 2.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
         let pixels = 400
         {
             Objects =
@@ -64,7 +64,7 @@ module SampleImages =
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
-            Camera.makeBasic 2.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Camera.makeBasic 2.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
         let pixels = 400
         {
             Objects =
@@ -82,7 +82,7 @@ module SampleImages =
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
-            Camera.makeBasic 7.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Camera.makeBasic 7.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
         let pixels = 200
         {
             Objects =
@@ -115,7 +115,7 @@ module SampleImages =
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
-            Camera.makeBasic 7.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Camera.makeBasic 7.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
         let pixels = 1200
         {
             Objects =
@@ -141,7 +141,7 @@ module SampleImages =
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
-            Camera.makeBasic 1.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Camera.makeBasic 1.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
         let pixels = 300
         {
             Objects =
@@ -168,7 +168,7 @@ module SampleImages =
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make -2.0 2.0 -1.0
         let camera =
-            Camera.makeBasic 1.0 aspectRatio origin (Point.differenceToThenFrom (Point.make 0.0 0.0 1.0) origin |> Vector.unitise |> Option.get)
+            Camera.makeBasic 1.0 aspectRatio origin (Point.differenceToThenFrom (Point.make 0.0 0.0 1.0) origin |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
         let pixels = 200
         {
             Objects =

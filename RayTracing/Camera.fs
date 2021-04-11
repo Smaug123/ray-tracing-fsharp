@@ -27,32 +27,29 @@ type Camera =
 
 [<RequireQualifiedAccess>]
 module Camera =
+
+    /// View angle is in radians (specified arbitrarily)
     let makeBasic
         (focalLength : float)
         (aspectRatio : float)
         (origin : Point)
         (viewDirection : UnitVector)
+        (viewUp : Vector)
         : Camera
         =
         let height = 2.0
-        let basis = UnitVector.basis 3
-        let xAxis =
-            basis.[0]
-            |> Ray.make origin
-        let yAxis =
-            basis.[1]
-            |> Ray.make origin
-
         let view = Ray.make origin viewDirection
+        let corner = Ray.walkAlong view focalLength
+
+        let viewPlane = Plane.makeNormalTo' corner viewDirection
+        let xAxis, yAxis = Plane.basis viewUp viewPlane
 
         {
             FocalLength = focalLength
             ViewportHeight = height
             ViewportWidth = aspectRatio * height
             View = view
-            ViewportXAxis =
-                Ray.parallelTo (Ray.walkAlong view focalLength) xAxis
-            ViewportYAxis =
-                Ray.parallelTo (Ray.walkAlong view focalLength) yAxis
+            ViewportXAxis = xAxis
+            ViewportYAxis = yAxis
             SamplesPerPixel = 50
         }

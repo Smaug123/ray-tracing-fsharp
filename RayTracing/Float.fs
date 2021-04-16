@@ -1,12 +1,33 @@
 namespace RayTracing
 
 open System
+open System.Threading
 
 [<NoComparison>]
 type Comparison =
     | Greater
     | Equal
     | Less
+
+[<RequireQualifiedAccess>]
+module private FloatProducer =
+    let inline generateInt32 (x : byref<int>) (y : byref<int>) (z : byref<int>) (w : byref<int>) =
+        let t = x ^^^ (x <<< 11)
+        x <- y
+        y <- z
+        z <- w
+        w <- w ^^^ (w >>> 19) ^^^ (t ^^^ (t >>> 8))
+        w
+
+    let inline toInt (w : int) =
+        let highest = (w &&& 0xFF)
+        let secondHighest = ((w >>> 8) &&& 0xFF)
+        let thirdHighest = ((w >>> 16) &&& 0xFF)
+        let lowest = ((w >>> 24) &&& 0xFF)
+        ((highest <<< 24) ^^^ (secondHighest <<< 16) ^^^ (thirdHighest <<< 8) ^^^ lowest)
+
+    let inline toDouble (i : int) =
+        float i / float Int32.MaxValue
 
 type FloatProducer (rand : Random) =
     let locker = obj ()
@@ -15,31 +36,39 @@ type FloatProducer (rand : Random) =
     let mutable z = rand.Next ()
     let mutable w = rand.Next ()
 
-    let generateInt32 () =
+    member __.Get () =
+        Monitor.Enter locker
         let w =
-            lock locker (fun () ->
-                let t = x ^^^ (x <<< 11)
-                x <- y
-                y <- z
-                z <- w
-                w <- w ^^^ (w >>> 19) ^^^ (t ^^^ (t >>> 8))
-                w
-            )
-        let highest = (w &&& 0xFF)
-        let secondHighest = ((w >>> 8) &&& 0xFF)
-        let thirdHighest = ((w >>> 16) &&& 0xFF)
-        let lowest = ((w >>> 24) &&& 0xFF)
-        ((highest <<< 24) ^^^ (secondHighest <<< 16) ^^^ (thirdHighest <<< 8) ^^^ lowest)
+            try
+                FloatProducer.generateInt32 &x &y &z &w
+            finally
+                Monitor.Exit locker
+        FloatProducer.toDouble (FloatProducer.toInt w)
 
-    let generateDouble () =
-        float (generateInt32 ()) / float Int32.MaxValue
+    member __.GetTwo () : struct(float * float) =
+        Monitor.Enter locker
+        let struct(w1, w2) =
+            try
+                let one = FloatProducer.generateInt32 &x &y &z &w
+                let two = FloatProducer.generateInt32 &x &y &z &w
+                struct(one, two)
+            finally
+                Monitor.Exit locker
 
-    member _.Get () : float = generateDouble ()
-
-    member _.GetTwo () : struct(float * float) = generateDouble (), generateDouble ()
+        struct(FloatProducer.toDouble (FloatProducer.toInt w1), FloatProducer.toDouble (FloatProducer.toInt w2))
 
     member _.GetThree () : struct(float * float * float) =
-        generateDouble (), generateDouble (), generateDouble ()
+        Monitor.Enter locker
+        let struct(w1, w2, w3) =
+            try
+                let one = FloatProducer.generateInt32 &x &y &z &w
+                let two = FloatProducer.generateInt32 &x &y &z &w
+                let three = FloatProducer.generateInt32 &x &y &z &w
+                struct(one, two, three)
+            finally
+                Monitor.Exit locker
+
+        struct(FloatProducer.toDouble (FloatProducer.toInt w1), FloatProducer.toDouble (FloatProducer.toInt w2), FloatProducer.toDouble (FloatProducer.toInt w3))
 
 
 [<RequireQualifiedAccess>]

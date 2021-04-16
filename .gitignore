@@ -67,3 +67,4 @@ paket-files/
 # Rider
 .idea/
 *.sln.iml
+*.DotSettings

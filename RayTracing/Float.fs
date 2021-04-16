@@ -10,21 +10,36 @@ type Comparison =
 
 type FloatProducer (rand : Random) =
     let locker = obj ()
+    let mutable x = rand.Next ()
+    let mutable y = rand.Next ()
+    let mutable z = rand.Next ()
+    let mutable w = rand.Next ()
 
-    member _.Get () : float =
-        lock locker (fun () ->
-            rand.NextDouble ()
-        )
+    let generateInt32 () =
+        let w =
+            lock locker (fun () ->
+                let t = x ^^^ (x <<< 11)
+                x <- y
+                y <- z
+                z <- w
+                w <- w ^^^ (w >>> 19) ^^^ (t ^^^ (t >>> 8))
+                w
+            )
+        let highest = (w &&& 0xFF)
+        let secondHighest = ((w >>> 8) &&& 0xFF)
+        let thirdHighest = ((w >>> 16) &&& 0xFF)
+        let lowest = ((w >>> 24) &&& 0xFF)
+        ((highest <<< 24) ^^^ (secondHighest <<< 16) ^^^ (thirdHighest <<< 8) ^^^ lowest)
 
-    member _.GetTwo () : struct(float * float) =
-        lock locker (fun () ->
-            rand.NextDouble (), rand.NextDouble()
-        )
+    let generateDouble () =
+        float (generateInt32 ()) / float Int32.MaxValue
+
+    member _.Get () : float = generateDouble ()
+
+    member _.GetTwo () : struct(float * float) = generateDouble (), generateDouble ()
 
     member _.GetThree () : struct(float * float * float) =
-        lock locker (fun () ->
-            rand.NextDouble (), rand.NextDouble(), rand.NextDouble()
-        )
+        generateDouble (), generateDouble (), generateDouble ()
 
 
 [<RequireQualifiedAccess>]
@@ -40,8 +55,8 @@ module Float =
     let inline positive (a : float) : bool =
         a > tolerance
 
-    let inline compare (a : float) (b : float) : Comparison =
-        if abs (a - b) < tolerance then Comparison.Equal
+    let inline compare<[<Measure>] 'a> (a : float<'a>) (b : float<'a>) : Comparison =
+        if abs (a - b) < LanguagePrimitives.FloatWithMeasure tolerance then Comparison.Equal
         elif a < b then Comparison.Less
         else Comparison.Greater
 

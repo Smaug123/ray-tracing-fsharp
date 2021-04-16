@@ -16,10 +16,9 @@ type InfinitePlane =
     {
         Normal : UnitVector
         Point : Point
-        /// If an incoming ray has the given colour, and hits the
-        /// given point (which is guaranteed to be on the surface),
+        /// If an incoming ray hits the given point (which is guaranteed to be on the surface),
         /// what colour ray does it output and in what direction?
-        Reflection : Ray -> Pixel -> Point -> Ray option * Pixel
+        Reflection : LightRay -> Point -> LightDestination
     }
 
 [<RequireQualifiedAccess>]
@@ -43,7 +42,7 @@ module InfinitePlane =
                 ValueSome t
             else ValueNone
 
-    let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : Ray) : Ray option =
+    let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : Ray) : Ray =
         let plane =
             Plane.makeSpannedBy (Ray.make strikePoint normal) incomingRay
             |> Plane.orthonormalise
@@ -52,7 +51,6 @@ module InfinitePlane =
             // Incoming ray is directly along the normal
             Ray.flip incomingRay
             |> Ray.parallelTo strikePoint
-            |> Some
         | Some plane ->
             // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
             // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
@@ -63,6 +61,8 @@ module InfinitePlane =
                 |> Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2)
             Point.differenceToThenFrom s strikePoint
             |> Ray.make' strikePoint
+            // This is definitely safe. It's actually a logic error if this fails.
+            |> Option.get
 
     let newColour (incomingColour : Pixel) albedo colour =
         Pixel.combine incomingColour colour
@@ -72,27 +72,30 @@ module InfinitePlane =
         (style : InfinitePlaneStyle)
         (pointOnPlane : Point)
         (normal : UnitVector)
-        : Ray -> Pixel -> Point -> Ray option * Pixel
+        : LightRay -> Point -> LightDestination
         =
-        fun incomingRay incomingColour strikePoint ->
+        fun incomingRay strikePoint ->
             match style with
             | InfinitePlaneStyle.LightSource colour ->
-                None, Pixel.combine incomingColour colour
+                Absorbs (Pixel.combine incomingRay.Colour colour)
 
             | InfinitePlaneStyle.FuzzedReflection (albedo, colour, fuzz, rand) ->
-                let newColour = newColour incomingColour albedo colour
-                let pureOutgoing = pureOutgoing strikePoint normal incomingRay
-                let outgoing =
-                    match pureOutgoing with
-                    | None -> None
-                    | Some outgoing ->
-                        let offset = UnitVector.random rand (Point.dimension pointOnPlane)
-                        let sphereCentre = Ray.walkAlong outgoing 1.0
-                        let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
+                let newColour = newColour incomingRay.Colour albedo colour
+                let pureOutgoing = pureOutgoing strikePoint normal incomingRay.Ray
+                let mutable outgoing = Unchecked.defaultof<_>
+                while obj.ReferenceEquals (outgoing, null) do
+                    let offset = UnitVector.random rand (Point.dimension pointOnPlane)
+                    let sphereCentre = Ray.walkAlong pureOutgoing 1.0
+                    let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
+                    let output =
                         Point.differenceToThenFrom target strikePoint
                         |> Ray.make' strikePoint
+                    match output with
+                    | None -> ()
+                    | Some output ->
+                        outgoing <- output
 
-                outgoing, newColour
+                Continues { Ray = outgoing ; Colour = newColour }
 
             | InfinitePlaneStyle.LambertReflection (albedo, colour, rand) ->
                 let outgoing =
@@ -101,14 +104,19 @@ module InfinitePlane =
                     let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
                     Point.differenceToThenFrom target strikePoint
                     |> Ray.make' strikePoint
+                    |> Option.get
 
                 let newColour =
-                    Pixel.combine incomingColour colour
+                    Pixel.combine incomingRay.Colour colour
                     |> Pixel.darken albedo
-                outgoing, newColour
+                Continues { Ray = outgoing ; Colour = newColour }
 
             | InfinitePlaneStyle.PureReflection (albedo, colour) ->
-                pureOutgoing strikePoint normal incomingRay, newColour incomingColour albedo colour
+                {
+                    Ray = pureOutgoing strikePoint normal incomingRay.Ray
+                    Colour = newColour incomingRay.Colour albedo colour
+                }
+                |> Continues
 
     let make (style : InfinitePlaneStyle) (pointOnPlane : Point) (normal : UnitVector) : InfinitePlane =
         {
@@ -116,4 +124,3 @@ module InfinitePlane =
             Normal = normal
             Reflection = reflection style pointOnPlane normal
         }
-

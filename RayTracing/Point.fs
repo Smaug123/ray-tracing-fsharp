@@ -1,18 +1,21 @@
 namespace RayTracing
 
+open System.Runtime.CompilerServices
+
 /// An n-dimensional point.
 /// We don't let you compare these for equality, because floats are hard.
-[<NoEquality ; NoComparison ; Struct>]
+[<NoEquality ; NoComparison ; Struct ; IsReadOnly>]
 type Point =
     private
     | Point of struct(float * float * float)
 
-[<NoEquality ; NoComparison ; Struct>]
+[<NoEquality ; NoComparison ; Struct ; IsReadOnly>]
 type Vector =
     private
     | Vector of struct(float * float * float)
 
-type UnitVector = UnitVector of Vector
+[<Struct ; IsReadOnly ; NoEquality ; NoComparison>]
+type UnitVector = | UnitVector of Vector
 
 [<RequireQualifiedAccess>]
 module Vector =

@@ -3,10 +3,6 @@ namespace RayTracing
 [<Measure>]
 type fuzz
 
-/// Index of refraction. Must be greater than or equal to 1.
-[<Measure>]
-type ior
-
 /// A probability, between 0 and 1.
 [<Measure>]
 type prob
@@ -19,7 +15,7 @@ type Sphere =
             /// If an incoming ray has the given colour, and hits the
             /// given point (which is guaranteed to be on the surface),
             /// what colour ray does it output and in what direction?
-            Reflection : Ray -> Pixel -> Point -> Ray option * Pixel
+            Reflection : LightRay -> Point -> LightDestination
             RadiusSquared : float
         }
 
@@ -39,10 +35,13 @@ type SphereStyle =
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
     | LambertReflection of albedo : float<albedo> * colour : Pixel * FloatProducer
-    /// A refracting sphere with the given ratio `ior` of its index of refraction with that of the surrounding
-    /// medium.
+    /// A refracting sphere with the given ratio `ior` of its index of refraction with that of the medium on
+    /// the other side of the surface. The convention is such that a solid sphere, with a light ray
+    /// entering from outside, should have index of refraction greater than 1.
     /// The probability is the probability that a ray will refract, so 0 yields a perfectly reflecting sphere.
-    | Dielectric of albedo : float<albedo> * colour : Pixel * float<ior> * reflection : float<prob> * FloatProducer
+    | Dielectric of albedo : float<albedo> * colour : Pixel * boundaryRefractance : float<ior> * refraction : float<prob> * FloatProducer
+    /// A glass material which uses Schlick's approximation for reflectance probability.
+    | Glass of albedo : float<albedo> * colour : Pixel * float<ior> * FloatProducer
 
 type Orientation =
     | Inside
@@ -57,24 +56,22 @@ module Sphere =
         Ray.make' p (Point.differenceToThenFrom p centre)
         |> Option.get
 
-    let private liesOn' (centre : Point) (radius : float) : Point -> bool =
+    let private liesOn' (centre : Point) (radius : float) (p : Point) : bool =
         let rSquared = radius * radius
-        fun p ->
-            Float.equal (Vector.normSquared (Point.differenceToThenFrom p centre)) rSquared
+        Float.equal (Vector.normSquared (Point.differenceToThenFrom p centre)) rSquared
 
     let reflection
         (style : SphereStyle)
         (centre : Point)
         (radius : float)
-        (incomingRay : Ray)
-        (incomingColour : Pixel)
+        (incomingLight : LightRay)
         (strikePoint : Point)
-        : Ray option * Pixel
+        : LightDestination
         =
         let normal = normal centre strikePoint
         // If the incoming ray is on the sphere, then we have to be an internal ray.
         let inside, normal =
-            match Float.compare (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingRay))) (radius * radius) with
+            match Float.compare (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingLight.Ray))) (radius * radius) with
             | Equal
             | Less ->
                 // Point is inside or on the sphere so we are coming from within
@@ -82,45 +79,67 @@ module Sphere =
             | Greater ->
                 false, normal
 
-        let fuzzedReflection (colour : Pixel) (albedo : float<albedo>) (fuzz : (float<fuzz> * FloatProducer) option) =
+        let fuzzedReflection (fuzz : (float<fuzz> * FloatProducer) option) =
             let plane =
-                Plane.makeSpannedBy normal incomingRay
+                Plane.makeSpannedBy normal incomingLight.Ray
                 |> Plane.orthonormalise
             let outgoing =
                 match plane with
                 | None ->
                     // Incoming ray is directly along the normal
-                    Ray.flip incomingRay
+                    Ray.flip incomingLight.Ray
                     |> Ray.parallelTo strikePoint
-                    |> Some
                 | Some plane ->
                     // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
                     // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
-                    let normalComponent = - UnitVector.dot plane.V1 (Ray.vector incomingRay)
-                    let tangentComponent = (UnitVector.dot plane.V2 (Ray.vector incomingRay))
+                    let normalComponent = - UnitVector.dot plane.V1 (Ray.vector incomingLight.Ray)
+                    let tangentComponent = (UnitVector.dot plane.V2 (Ray.vector incomingLight.Ray))
                     let dest = Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2) tangentComponent
                     Point.differenceToThenFrom dest strikePoint
                     |> Ray.make' strikePoint
+                    // This is safe: it's actually a logic error for this to fail.
+                    |> Option.get
 
-            let outgoing =
-                match outgoing, fuzz with
-                | None, _ -> None
-                | Some outgoing, None -> Some outgoing
-                | Some outgoing, Some (fuzz, rand) ->
+            match fuzz with
+            | None -> outgoing
+            | Some (fuzz, rand) ->
+                let mutable answer = Unchecked.defaultof<_>
+                while obj.ReferenceEquals (answer, null) do
                     let offset = UnitVector.random rand (Point.dimension centre)
                     let sphereCentre = Ray.walkAlong outgoing 1.0
                     let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
-                    Point.differenceToThenFrom target strikePoint
-                    |> Ray.make' strikePoint
+                    let exitPoint =
+                        Point.differenceToThenFrom target strikePoint
+                        |> Ray.make' strikePoint
+                    match exitPoint with
+                    | None -> ()
+                    | Some o ->
+                        answer <- o
+                answer
 
-            let darkened =
-                Pixel.combine incomingColour colour
-                |> Pixel.darken albedo
-            outgoing, darkened
+        let refract (incomingCos : float) (index : float<ior>) =
+            let index = if inside then 1.0<ior> / index else index / 1.0<ior>
+            let plane = Plane.makeSpannedBy normal incomingLight.Ray
+            let incomingSin = sqrt (1.0 - incomingCos * incomingCos)
+            let outgoingSin = incomingSin * index
+            if Float.compare outgoingSin 1.0 = Greater then
+                // override our decision to refract - from this angle, there's no way we could have refracted
+                fuzzedReflection None
+
+            else
+            let outgoingCos = sqrt (1.0 - outgoingSin * outgoingSin)
+            let outgoingPoint =
+                Ray.walkAlong (Ray.make (Ray.walkAlong normal (-outgoingCos)) plane.V2) outgoingSin
+
+            Point.differenceToThenFrom outgoingPoint strikePoint
+            |> Ray.make' strikePoint
+            // This is safe: it's a logic error for this to fail. It would imply both the
+            // cos and the sin outgoing components were 0.
+            |> Option.get
 
         match style with
         | SphereStyle.LightSource colour ->
-            None, Pixel.combine incomingColour colour
+            Absorbs (Pixel.combine incomingLight.Colour colour)
         | SphereStyle.LightSourceCap colour ->
             let circleCentreZCoord = Point.xCoordinate centre
             let zCoordLowerBound = circleCentreZCoord + (radius - (radius / 4.0))
@@ -128,55 +147,77 @@ module Sphere =
             let colour =
                 match Float.compare strikeZCoord zCoordLowerBound with
                 | Greater ->
-                    Pixel.combine colour incomingColour
+                    Pixel.combine colour incomingLight.Colour
                 | _ ->
                     Colour.Black
-            None, colour
+            Absorbs colour
 
         | SphereStyle.LambertReflection (albedo, colour, rand) ->
             let outgoing =
                 let sphereCentre = Ray.walkAlong normal 1.0
-                let offset = UnitVector.random rand (Point.dimension sphereCentre)
-                let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
-                Point.differenceToThenFrom target strikePoint
-                |> Ray.make' strikePoint
+                let mutable answer = Unchecked.defaultof<_>
+                while obj.ReferenceEquals (answer, null) do
+                    let offset = UnitVector.random rand (Point.dimension sphereCentre)
+                    let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
+                    let outputPoint =
+                        Point.differenceToThenFrom target strikePoint
+                        |> Ray.make' strikePoint
+                    match outputPoint with
+                    | Some o -> answer <- o
+                    | None -> ()
+                answer
 
             let newColour =
-                Pixel.combine incomingColour colour
+                Pixel.combine incomingLight.Colour colour
                 |> Pixel.darken albedo
-            outgoing, newColour
+            Continues { Ray = outgoing ; Colour = newColour }
 
         | SphereStyle.PureReflection (albedo, colour) ->
-            fuzzedReflection colour albedo None
-        | SphereStyle.FuzzedReflection (albedo, colour, fuzz, random) ->
-            fuzzedReflection colour albedo (Some (fuzz, random))
+            let darkened =
+                Pixel.combine incomingLight.Colour colour
+                |> Pixel.darken albedo
 
-        | SphereStyle.Dielectric (albedo, colour, index, reflectionProb, random) ->
+            Continues { Ray = fuzzedReflection None ; Colour = darkened }
+
+        | SphereStyle.FuzzedReflection (albedo, colour, fuzz, random) ->
+            let darkened =
+                Pixel.combine incomingLight.Colour colour
+                |> Pixel.darken albedo
+
+            Continues { Ray = fuzzedReflection (Some (fuzz, random)) ; Colour = darkened }
+
+        | SphereStyle.Dielectric (albedo, colour, sphereRefractance, refractionProb, random) ->
             let newColour =
-                Pixel.combine incomingColour colour
+                Pixel.combine incomingLight.Colour colour
                 |> Pixel.darken albedo
 
             let rand = random.Get ()
+
+            if LanguagePrimitives.FloatWithMeasure rand > refractionProb then
+                // reflect!
+                Continues { Ray = fuzzedReflection None ; Colour = newColour }
+            else
+                let incomingCos = UnitVector.dot (UnitVector.flip (Ray.vector incomingLight.Ray)) (Ray.vector normal)
+                Continues { Ray = refract incomingCos sphereRefractance ; Colour = newColour }
+
+        | SphereStyle.Glass (albedo, colour, sphereRefractance, random) ->
+            let newColour =
+                Pixel.combine incomingLight.Colour colour
+                |> Pixel.darken albedo
+
+            let incomingCos = UnitVector.dot (Ray.vector normal) (UnitVector.flip (Ray.vector incomingLight.Ray))
+
+            let rand = random.Get ()
+            let reflectionProb =
+                let param = (1.0<ior> - sphereRefractance) / (1.0<ior> + sphereRefractance)
+                let param = param * param
+                param + (1.0 - param) * ((1.0 - incomingCos) ** 5.0)
+
             if LanguagePrimitives.FloatWithMeasure rand > reflectionProb then
                 // reflect!
-                fuzzedReflection colour albedo None
+                Continues { Ray = fuzzedReflection None ; Colour = newColour }
             else
-            let index = if inside then 1.0<ior>/index else index / 1.0<ior>
-            let plane = Plane.makeSpannedBy normal incomingRay
-            let incomingCos = UnitVector.dot (Ray.vector incomingRay) (Ray.vector normal)
-            let incomingSin = sqrt (1.0 - incomingCos * incomingCos)
-            let outgoingSin = index * incomingSin
-            if Float.compare outgoingSin 1.0 = Greater then
-                // override our decision to refract - from this angle, there's no way we could have refracted
-                fuzzedReflection colour albedo None
-
-            else
-            let outgoingCos = sqrt (1.0 - outgoingSin * outgoingSin)
-            let outgoingPoint =
-                Ray.walkAlong (Ray.make (Ray.walkAlong normal (-outgoingCos)) plane.V2) outgoingSin
-            let outgoing = Point.differenceToThenFrom outgoingPoint strikePoint |> Ray.make' strikePoint |> Option.get
-
-            Some outgoing, newColour
+                Continues { Ray = refract incomingCos sphereRefractance ; Colour = newColour }
 
     let make (style : SphereStyle) (centre : Point) (radius : float) : Sphere =
         {

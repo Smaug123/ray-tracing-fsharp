@@ -51,5 +51,5 @@ module Camera =
             View = view
             ViewportXAxis = xAxis
             ViewportYAxis = yAxis
-            SamplesPerPixel = 50
+            SamplesPerPixel = 60
         }

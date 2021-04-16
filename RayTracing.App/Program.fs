@@ -1,5 +1,6 @@
 ﻿namespace RayTracing.App
 
+open System.IO
 open RayTracing
 open System.IO.Abstractions
 open Spectre.Console
@@ -16,7 +17,19 @@ module Program =
         let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
         let writeTask = ctx.AddTask "[green]Writing PPM file[/]"
 
-        let maxProgress, image = SampleImages.get sample renderTask.Increment
+        let logFile = ppmOutput.FileSystem.Path.GetTempFileName () |> ppmOutput.FileSystem.FileInfo.FromFileName
+        use stream = logFile.OpenWrite ()
+        use writer = new StreamWriter(stream)
+        writer.AutoFlush <- true
+        let lockObj = obj ()
+        let write (s : string) =
+            lock lockObj (fun () ->
+                writer.WriteLine s
+            )
+
+        printfn "Log output, if any, to '%s'" logFile.FullName
+
+        let maxProgress, image = SampleImages.get sample renderTask.Increment write
         renderTask.MaxValue <- maxProgress / 1.0<progress>
         writeUnorderedTask.MaxValue <- maxProgress / 1.0<progress>
         readTask.MaxValue <- maxProgress / 1.0<progress>

@@ -9,6 +9,7 @@ type SampleImages =
     | FuzzyFloor
     | InsideSphere
     | TotalRefraction
+    | HollowDielectric
     | MovedCamera
     static member Parse (s : string) =
         match s with
@@ -19,12 +20,13 @@ type SampleImages =
         | "inside-sphere" -> SampleImages.InsideSphere
         | "total-refraction" -> SampleImages.TotalRefraction
         | "moved-camera" -> SampleImages.MovedCamera
+        | "hollow-dielectric" -> SampleImages.HollowDielectric
         | s -> failwithf "Unrecognised arg: %s" s
 
 [<RequireQualifiedAccess>]
 module SampleImages =
 
-    let gradient (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+    let gradient (progressIncrement : float<progress> -> unit) (_ : string -> unit) : float<progress> * Image =
         let pixelAt height width =
             {
                 Red = (byte width)
@@ -44,7 +46,7 @@ module SampleImages =
 
         256.0<progress>, image
 
-    let shinyPlane (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+    let shinyPlane (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
@@ -57,9 +59,9 @@ module SampleImages =
                     Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.5<albedo>, Colour.White)) (Point.make 0.0 -1.0 0.0) (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get)) // Floor rug
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
-    let fuzzyPlane (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+    let fuzzyPlane (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
         let random = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
@@ -73,9 +75,9 @@ module SampleImages =
                     Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzedReflection (1.0<albedo>, Colour.White, 0.75<fuzz>, random)) (Point.make 0.0 -1.0 0.0) (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get)) // Floor rug
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
-    let spheres (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+    let spheres (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
         let random1 = Random () |> FloatProducer
         let random2 = Random () |> FloatProducer
         let random3 = Random () |> FloatProducer
@@ -105,9 +107,9 @@ module SampleImages =
                     Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource { Red = 15uy ; Green = 15uy ; Blue = 15uy }) (Point.make 0.0 1.0 -1.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get))
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
-    let insideSphere (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+    let insideSphere (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
         let random1 = Random () |> FloatProducer
         let random2 = Random () |> FloatProducer
         let random3 = Random () |> FloatProducer
@@ -134,9 +136,9 @@ module SampleImages =
 
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
-    let totalRefraction (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+    let totalRefraction (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
         let random = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
@@ -154,22 +156,51 @@ module SampleImages =
                     // Middle sphere
                     Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, { Red = 25uy ; Green = 50uy ; Blue = 120uy }, random)) (Point.make 0.0 0.0 1.0) 0.5)
                     // Left sphere
-                    Hittable.Sphere (Sphere.make (SphereStyle.Dielectric (1.0<albedo>, Colour.White, 0.666<ior>, 1.0<prob>, random)) (Point.make -1.0 0.0 1.0) 0.5)
-                    Hittable.Sphere (Sphere.make (SphereStyle.Dielectric (1.0<albedo>, Colour.White, 1.5<ior>, 1.0<prob>, random)) (Point.make -1.0 0.0 1.0) 0.4)
+                    Hittable.Sphere (Sphere.make (SphereStyle.Dielectric (1.0<albedo>, Colour.White, 1.5<ior>, 1.0<prob>, random)) (Point.make -1.0 0.0 1.0) 0.5)
 
                     // Light around us
                     Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
-    let movedCamera (progressIncrement : float<progress> -> unit) : float<progress> * Image =
+    let hollowGlassSphere (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
+        let random1 = Random () |> FloatProducer
+        let random2 = Random () |> FloatProducer
+        let random3 = Random () |> FloatProducer
+        let random4 = Random () |> FloatProducer
+        let aspectRatio = 16.0 / 9.0
+        let origin = Point.make 0.0 0.0 0.0
+        let camera =
+            Camera.makeBasic 1.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
+        let pixels = 300
+        {
+            Objects =
+                [|
+                    // Floor
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.5<albedo>, { Red = 204uy ; Green = 204uy ; Blue = 0uy }, random1)) (Point.make 0.0 -100.5 1.0) 100.0)
+
+                    // Right sphere
+                    Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 204uy ; Green = 153uy ; Blue = 51uy })) (Point.make 1.0 0.0 1.0) 0.5)
+                    // Middle sphere
+                    Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, { Red = 25uy ; Green = 50uy ; Blue = 120uy }, random2)) (Point.make 0.0 0.0 1.0) 0.5)
+                    // Left sphere
+                    Hittable.Sphere (Sphere.make (SphereStyle.Glass (0.9<albedo>, Colour.White, 1.5<ior>, random3)) (Point.make -1.0 0.0 1.0) 0.5)
+                    Hittable.Sphere (Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.0<ior> / 1.5, random4)) (Point.make -1.0 0.0 1.0) 0.4)
+
+                    // Light around us
+                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
+                |]
+        }
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
+
+    let movedCamera (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
         let random = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make -2.0 2.0 -1.0
         let camera =
-            Camera.makeBasic 1.0 aspectRatio origin (Point.differenceToThenFrom (Point.make 0.0 0.0 1.0) origin |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
-        let pixels = 200
+            Camera.makeBasic 10.0 aspectRatio origin (Point.differenceToThenFrom (Point.make -1.0 0.0 1.0) origin |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
+        let pixels = 300
         {
             Objects =
                 [|
@@ -181,16 +212,16 @@ module SampleImages =
                     // Middle sphere
                     Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, { Red = 25uy ; Green = 50uy ; Blue = 120uy }, random)) (Point.make 0.0 0.0 1.0) 0.5)
                     // Left sphere
-                    Hittable.Sphere (Sphere.make (SphereStyle.Dielectric (1.0<albedo>, Colour.White, 0.666<ior>, 1.0<prob>, random)) (Point.make -1.0 0.0 1.0) 0.5)
-                    Hittable.Sphere (Sphere.make (SphereStyle.Dielectric (1.0<albedo>, Colour.White, 1.5<ior>, 1.0<prob>, random)) (Point.make -1.0 0.0 1.0) 0.4)
+                    Hittable.Sphere (Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.5<ior>, random)) (Point.make -1.0 0.0 1.0) 0.5)
+                    Hittable.Sphere (Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.0<ior> / 1.5, random)) (Point.make -1.0 0.0 1.0) 0.45)
 
                     // Light around us
-                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
+                    Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 130uy ; Green = 130uy ; Blue = 200uy }) (Point.make 0.0 0.0 0.0) 200.0)
                 |]
         }
-        |> Scene.render progressIncrement (aspectRatio * (float pixels) |> int) pixels camera
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
-    let get (s : SampleImages) : (float<progress> -> unit) -> float<progress> * Image =
+    let get (s : SampleImages) : (float<progress> -> unit) -> (string -> unit) -> float<progress> * Image =
         match s with
         | Gradient -> gradient
         | Spheres -> spheres
@@ -198,6 +229,5 @@ module SampleImages =
         | FuzzyFloor -> fuzzyPlane
         | InsideSphere -> insideSphere
         | TotalRefraction -> totalRefraction
-        // TODO - the movedCamera image is weird and not right - probably to do with the x and y axes being
-        // vertical rather than scaled with the lookAt?
+        | HollowDielectric -> hollowGlassSphere
         | MovedCamera -> movedCamera

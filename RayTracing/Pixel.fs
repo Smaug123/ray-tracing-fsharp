@@ -1,11 +1,12 @@
 namespace RayTracing
 
 open System
+open System.Runtime.CompilerServices
 
 [<Measure>]
 type albedo
 
-[<Struct>]
+[<Struct ; IsReadOnly>]
 type Pixel =
     {
         Red : byte

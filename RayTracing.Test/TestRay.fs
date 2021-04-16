@@ -67,3 +67,10 @@ module TestRay =
         property
         |> Prop.forAll (Arb.fromGen (Gen.zip TestUtils.rayGen (Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit)))
         |> Check.QuickThrowOnFailure
+
+    [<Test>]
+    let foo () =
+        let r = System.Random ()
+        let fp = FloatProducer r
+        for i in Array.init 100 (fun _ -> fp.Get ()) |> Array.sort do
+            printfn "%f" i

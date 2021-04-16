@@ -12,6 +12,7 @@
         <Compile Include="Ray.fsi" />
         <Compile Include="Ray.fs" />
         <Compile Include="Plane.fs" />
+        <Compile Include="LightRay.fs" />
         <Compile Include="Sphere.fs" />
         <Compile Include="InfinitePlane.fs" />
         <Compile Include="ImageOutput.fs" />

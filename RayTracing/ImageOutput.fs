@@ -3,6 +3,7 @@
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
+open System.Drawing.Imaging
 open System.IO
 open System.IO.Abstractions
 open System.Text
@@ -30,6 +31,17 @@ module PixelOutput =
             let blue = pixel.Blue
             sprintf "%i %i %i" red green blue
 
+    let toSystem (gammaCorrect : bool) (pixel : Pixel) : System.Drawing.Color =
+        if gammaCorrect then
+            let red = correct pixel.Red
+            let green = correct pixel.Green
+            let blue = correct pixel.Blue
+            Drawing.Color.FromArgb (255, int red, int green, int blue)
+        else
+            let red = pixel.Red
+            let green = pixel.Green
+            let blue = pixel.Blue
+            Drawing.Color.FromArgb (255, int red, int green, int blue)
 
 [<RequireQualifiedAccess>]
 module ImageOutput =
@@ -169,3 +181,31 @@ module ImageOutput =
         : IFileInfo * Async<unit>
         =
         resume progressIncrement ImmutableDictionary.Empty image fs
+
+[<RequireQualifiedAccess>]
+module Png =
+
+    let write (gammaCorrect : bool) (incrementProgress : float<progress> -> unit) (pixels : Pixel [] []) (output : IFileInfo) : Async<unit> =
+        let maxRow = pixels.Length
+        let maxCol = pixels.[0].Length
+        async {
+            use img = new System.Drawing.Bitmap (maxCol, maxRow)
+
+            let writeRow (row : int) =
+                for col in 0..pixels.[row].Length - 2 do
+                    let colour = PixelOutput.toSystem gammaCorrect pixels.[row].[col]
+                    img.SetPixel (col, row, colour)
+                    incrementProgress 1.0<progress>
+
+                let colour = PixelOutput.toSystem gammaCorrect pixels.[row].[pixels.[row].Length - 1]
+                img.SetPixel (pixels.[row].Length - 1, row, colour)
+                incrementProgress 1.0<progress>
+
+            for row in 0..pixels.Length - 2 do
+                writeRow row
+            writeRow (pixels.Length - 1)
+
+            use fileStream = output.OpenWrite ()
+            img.Save (fileStream, ImageFormat.Png)
+            return ()
+        }

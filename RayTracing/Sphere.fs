@@ -64,20 +64,24 @@ module Sphere =
         (style : SphereStyle)
         (centre : Point)
         (radius : float)
+        (radiusSquared : float)
+        (flipped : bool)
         (incomingLight : LightRay)
         (strikePoint : Point)
         : LightDestination
         =
         let normal = normal centre strikePoint
-        // If the incoming ray is on the sphere, then we have to be an internal ray.
+
+        // If the incoming ray is on the sphere, then we have to be an internal ray, so the normal is flipped.
+        // But to model a glass shell (not a sphere), we allow negative radius, which contributes a flipping term.
         let inside, normal =
-            match Float.compare (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingLight.Ray))) (radius * radius) with
+            match Float.compare (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingLight.Ray))) radiusSquared with
             | Equal
             | Less ->
                 // Point is inside or on the sphere so we are coming from within
-                true, Ray.make (Ray.origin normal) (UnitVector.scale -1.0 (Ray.vector normal) |> UnitVector)
+                if flipped then false, normal else true, Ray.make (Ray.origin normal) (UnitVector.flip (Ray.vector normal))
             | Greater ->
-                false, normal
+                if flipped then true, Ray.make (Ray.origin normal) (UnitVector.flip (Ray.vector normal)) else false, normal
 
         let fuzzedReflection (fuzz : (float<fuzz> * FloatProducer) option) =
             let plane =
@@ -119,9 +123,16 @@ module Sphere =
 
         let refract (incomingCos : float) (index : float<ior>) =
             let index = if inside then 1.0<ior> / index else index / 1.0<ior>
-            let plane = Plane.makeSpannedBy normal incomingLight.Ray
+            let plane =
+                Plane.makeSpannedBy normal incomingLight.Ray
+                |> Plane.orthonormalise
+            match plane with
+            | None ->
+                // Incoming ray was parallel to normal; pass straight through
+                Ray.make strikePoint (Ray.vector incomingLight.Ray)
+            | Some plane ->
             let incomingSin = sqrt (1.0 - incomingCos * incomingCos)
-            let outgoingSin = incomingSin * index
+            let outgoingSin = incomingSin / index
             if Float.compare outgoingSin 1.0 = Greater then
                 // override our decision to refract - from this angle, there's no way we could have refracted
                 fuzzedReflection None
@@ -197,7 +208,7 @@ module Sphere =
                 // reflect!
                 Continues { Ray = fuzzedReflection None ; Colour = newColour }
             else
-                let incomingCos = UnitVector.dot (UnitVector.flip (Ray.vector incomingLight.Ray)) (Ray.vector normal)
+                let incomingCos = UnitVector.dot (Ray.vector incomingLight.Ray) (Ray.vector normal)
                 Continues { Ray = refract incomingCos sphereRefractance ; Colour = newColour }
 
         | SphereStyle.Glass (albedo, colour, sphereRefractance, random) ->
@@ -205,26 +216,28 @@ module Sphere =
                 Pixel.combine incomingLight.Colour colour
                 |> Pixel.darken albedo
 
-            let incomingCos = UnitVector.dot (Ray.vector normal) (UnitVector.flip (Ray.vector incomingLight.Ray))
+            let incomingCos = UnitVector.dot (UnitVector.flip (Ray.vector incomingLight.Ray)) (Ray.vector normal)
 
             let rand = random.Get ()
             let reflectionProb =
+                let sphereRefractance = if inside then 1.0<ior * ior> / sphereRefractance else sphereRefractance
                 let param = (1.0<ior> - sphereRefractance) / (1.0<ior> + sphereRefractance)
                 let param = param * param
                 param + (1.0 - param) * ((1.0 - incomingCos) ** 5.0)
 
-            if LanguagePrimitives.FloatWithMeasure rand > reflectionProb then
+            if LanguagePrimitives.FloatWithMeasure rand < reflectionProb then
                 // reflect!
                 Continues { Ray = fuzzedReflection None ; Colour = newColour }
             else
                 Continues { Ray = refract incomingCos sphereRefractance ; Colour = newColour }
 
     let make (style : SphereStyle) (centre : Point) (radius : float) : Sphere =
+        let radiusSquared = radius * radius
         {
             Centre = centre
             Radius = radius
-            Reflection = reflection style centre radius
-            RadiusSquared = radius * radius
+            Reflection = reflection style centre radius radiusSquared (Float.compare radius 0.0 = Less)
+            RadiusSquared = radiusSquared
         }
 
     let liesOn (point : Point) (sphere : Sphere) : bool =

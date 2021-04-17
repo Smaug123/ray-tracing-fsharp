@@ -13,6 +13,7 @@
         <Compile Include="TestPixel.fs" />
         <Compile Include="TestPlane.fs" />
         <Compile Include="TestSphere.fs" />
+        <Compile Include="TestRandom.fs" />
     </ItemGroup>
 
     <ItemGroup>

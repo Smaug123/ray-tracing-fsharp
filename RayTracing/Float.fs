@@ -11,7 +11,7 @@ type Comparison =
 
 [<RequireQualifiedAccess>]
 module private FloatProducer =
-    let inline generateInt32 (x : byref<int>) (y : byref<int>) (z : byref<int>) (w : byref<int>) =
+    let inline generateInt32 (x : byref<uint>) (y : byref<uint>) (z : byref<uint>) (w : byref<uint>) =
         let t = x ^^^ (x <<< 11)
         x <- y
         y <- z
@@ -19,22 +19,22 @@ module private FloatProducer =
         w <- w ^^^ (w >>> 19) ^^^ (t ^^^ (t >>> 8))
         w
 
-    let inline toInt (w : int) =
-        let highest = (w &&& 0xFF)
-        let secondHighest = ((w >>> 8) &&& 0xFF)
-        let thirdHighest = ((w >>> 16) &&& 0xFF)
-        let lowest = ((w >>> 24) &&& 0xFF)
+    let inline toInt (w : uint) : uint =
+        let highest = (w &&& 0xFFu)
+        let secondHighest = ((w >>> 8) &&& 0xFFu)
+        let thirdHighest = ((w >>> 16) &&& 0xFFu)
+        let lowest = ((w >>> 24) &&& 0xFFu)
         ((highest <<< 24) ^^^ (secondHighest <<< 16) ^^^ (thirdHighest <<< 8) ^^^ lowest)
 
-    let inline toDouble (i : int) =
-        float i / float Int32.MaxValue
+    let inline toDouble (i : uint) =
+        float i / float UInt32.MaxValue
 
 type FloatProducer (rand : Random) =
     let locker = obj ()
-    let mutable x = rand.Next ()
-    let mutable y = rand.Next ()
-    let mutable z = rand.Next ()
-    let mutable w = rand.Next ()
+    let mutable x = uint (rand.Next ())
+    let mutable y = uint (rand.Next ())
+    let mutable z = uint (rand.Next ())
+    let mutable w = uint (rand.Next ())
 
     member __.Get () =
         Monitor.Enter locker

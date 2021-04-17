@@ -11,13 +11,13 @@ module Program =
 
         member this.Increment (prog : float<progress>) = this.Increment (prog / 1.0<progress>)
 
-    let go (sample : SampleImages) (ppmOutput : IFileInfo) (ctx : ProgressContext) =
+    let go (sample : SampleImages) (pngOutput : IFileInfo) (ctx : ProgressContext) =
         let renderTask = ctx.AddTask "[green]Generating image[/]"
         let writeUnorderedTask = ctx.AddTask "[green]Writing unordered pixels[/]"
         let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
         let writeTask = ctx.AddTask "[green]Writing PPM file[/]"
 
-        let logFile = ppmOutput.FileSystem.Path.GetTempFileName () |> ppmOutput.FileSystem.FileInfo.FromFileName
+        let logFile = pngOutput.FileSystem.Path.GetTempFileName () |> pngOutput.FileSystem.FileInfo.FromFileName
         use stream = logFile.OpenWrite ()
         use writer = new StreamWriter(stream)
         writer.AutoFlush <- true
@@ -35,20 +35,20 @@ module Program =
         readTask.MaxValue <- maxProgress / 1.0<progress>
         writeTask.MaxValue <- maxProgress / 1.0<progress>
 
-        let tempOutput, await = ImageOutput.toPpm writeUnorderedTask.Increment image ppmOutput.FileSystem
+        let tempOutput, await = ImageOutput.toPpm writeUnorderedTask.Increment image pngOutput.FileSystem
         AnsiConsole.WriteLine (sprintf "Temporary output being written eagerly to '%s'" tempOutput.FullName)
 
         async {
             do! await
             let! pixelMap = ImageOutput.readPixelMap readTask.Increment tempOutput (Image.rowCount image) (Image.colCount image)
             let pixelMap = ImageOutput.assertComplete pixelMap
-            do! ImageOutput.writePpm true writeTask.Increment pixelMap ppmOutput
+            do! Png.write true writeTask.Increment pixelMap pngOutput
             tempOutput.Delete ()
             return ()
         }
         |> Async.RunSynchronously
 
-        printfn "%s" ppmOutput.FullName
+        printfn "%s" pngOutput.FullName
 
     [<EntryPoint>]
     let main (argv : string []) : int =
@@ -57,7 +57,7 @@ module Program =
             match argv with
             | [| name |] ->
                 SampleImages.Parse name,
-                fs.Path.GetTempFileName () |> fun i -> fs.Path.ChangeExtension (i, ".ppm") |> fs.FileInfo.FromFileName
+                fs.Path.GetTempFileName () |> fun i -> fs.Path.ChangeExtension (i, ".png") |> fs.FileInfo.FromFileName
             | [| name ; output |] ->
                 SampleImages.Parse name, fs.FileInfo.FromFileName output
             | _ -> failwithf "Expected two args 'sample name' 'output file', got %+A"  argv

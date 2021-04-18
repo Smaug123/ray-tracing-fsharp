@@ -80,10 +80,22 @@ module UnitVector =
             Vector (0.0, 0.0, 1.0) |> UnitVector
         |]
 
+    let coordinate (i : int) (UnitVector (Vector (a, b, c))) : float =
+        match i with
+        | 0 -> a
+        | 1 -> b
+        | 2 -> c
+        | _ -> failwithf "Bad coordinate: %i" i
+
 [<RequireQualifiedAccess>]
 module Point =
 
-    let xCoordinate (Point (x, _, _)) = x
+    let coordinate (i : int) (Point (x, y, z)) =
+        match i with
+        | 0 -> x
+        | 1 -> y
+        | 2 -> z
+        | _ -> failwithf "Bad coordinate: %i" i
 
     let sum (Point (a, b, c)) (Point (x, y, z)) : Point =
         Point (a + x, b + y, c + z)

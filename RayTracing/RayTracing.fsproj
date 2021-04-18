@@ -11,6 +11,7 @@
         <Compile Include="Domain.fs" />
         <Compile Include="Ray.fsi" />
         <Compile Include="Ray.fs" />
+        <Compile Include="BoundingBox.fs" />
         <Compile Include="Plane.fs" />
         <Compile Include="LightRay.fs" />
         <Compile Include="Sphere.fs" />

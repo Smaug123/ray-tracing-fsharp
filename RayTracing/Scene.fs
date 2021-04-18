@@ -11,8 +11,16 @@ type Hittable =
         | Sphere s -> s.Reflection incoming strikePoint
         | InfinitePlane p -> p.Reflection incoming strikePoint
 
+    member this.BoundingBox : BoundingBox option =
+        match this with
+        | Sphere s -> Sphere.boundingBox s |> Some
+        | InfinitePlane _ -> None
+
 [<RequireQualifiedAccess>]
 module Hittable =
+
+    let inline boundingBox (h : Hittable) = h.BoundingBox
+
     /// Returns the distance we must walk along this ray before we first hit an object, the
     /// colour the resulting light ray is after the interaction, and the new ray.
     let hits
@@ -27,68 +35,69 @@ module Hittable =
             InfinitePlane.intersection plane ray
 
 type Scene =
-    {
-        Objects : Hittable array
-    }
+    private
+        {
+            BoundedObjects : Hittable array
+            UnboundedObjects : Hittable array
+            BoundingBoxes : BoundingBoxTree option
+        }
 
 [<RequireQualifiedAccess>]
 module Scene =
 
+    let make (rand : Random) (objects : Hittable array) =
+        let bounded, unbounded =
+            objects
+            |> Array.map (fun h -> h, Hittable.boundingBox h)
+            |> Array.partition (snd >> Option.isSome)
+        let bounded = bounded |> Array.map (fun (h, box) -> h, Option.get box)
+        let unbounded = unbounded |> Array.map fst
+        {
+            UnboundedObjects = unbounded
+            BoundedObjects = bounded |> Array.map fst
+            BoundingBoxes =
+                bounded
+                |> Array.map snd
+                |> BoundingBoxTree.make rand
+        }
+
     let hitObject
         (s : Scene)
         (ray : Ray)
-        : (int * Point) option
+        : (Hittable * Point) option
         =
-        let mutable bestIndex = -1
+        let mutable best = Unchecked.defaultof<_>
         let mutable bestLength = nan
         let mutable bestFloat = infinity
-        for i in 0..s.Objects.Length - 1 do
-            match Hittable.hits ray s.Objects.[i] with
+        for i in 0..s.UnboundedObjects.Length - 1 do
+            match Hittable.hits ray s.UnboundedObjects.[i] with
             | ValueNone -> ()
             | ValueSome point ->
                 let a = point * point
                 match Float.compare a bestFloat with
                 | Less ->
                     bestFloat <- a
-                    bestIndex <- i
+                    best <- s.UnboundedObjects.[i]
                     bestLength <- point
                 | _ -> ()
 
+        match s.BoundingBoxes with
+        | None -> ()
+        | Some boundingBoxes ->
+            for i in BoundingBoxTree.getHits ray boundingBoxes do
+                match Hittable.hits ray s.BoundedObjects.[i] with
+                | ValueNone -> ()
+                | ValueSome point ->
+                    let a = point * point
+                    match Float.compare a bestFloat with
+                    | Less ->
+                        bestFloat <- a
+                        best <- s.BoundedObjects.[i]
+                        bestLength <- point
+                    | _ -> ()
+
         if Double.IsNaN bestLength then None else
-        Some (bestIndex, Ray.walkAlong ray bestLength)
-
-    let internal traceRayPrinting
-        (print : string -> unit)
-        (maxCount : int)
-        (scene : Scene)
-        (ray : LightRay)
-        : Pixel
-        =
-        let rec go (bounces : int) (ray : LightRay) : Pixel =
-            let (Point(x, y, z)) = Ray.origin ray.Ray
-            let (UnitVector (Vector(a, b, c))) = Ray.vector ray.Ray
-            print (sprintf "Ray, colour %i,%i,%i\n  origin (%f, %f, %f)\n  vector (%f, %f, %f)" ray.Colour.Red ray.Colour.Green ray.Colour.Blue x y z a b c)
-            if bounces > maxCount then Colour.HotPink else
-
-            let thingsWeHit = hitObject scene ray.Ray
-            match thingsWeHit with
-            | None ->
-                print ">>> No object collision; black."
-                // Ray goes off into the distance and is never heard from again
-                Colour.Black
-            | Some (objectNumber, strikePoint) ->
-                let (Point(x, y, z)) = strikePoint
-                print (sprintf ">>> collided with object %i at (%f, %f, %f)" objectNumber x y z)
-                let outgoingRay = scene.Objects.[objectNumber].Reflection ray strikePoint
-                match outgoingRay with
-                | Absorbs colour ->
-                    print (sprintf ">>>   surface absorbs, yielding colour %i,%i,%i" colour.Red colour.Green colour.Blue)
-                    colour
-                | Continues outgoingRay ->
-                    print ">>>   continuing tracing."
-                    go (bounces + 1) outgoingRay
-
-        go 0 ray
+        Some (best, Ray.walkAlong ray bestLength)
 
     let internal traceRay
         (maxCount : int)
@@ -106,8 +115,8 @@ module Scene =
             | None ->
                 // Ray goes off into the distance and is never heard from again
                 Colour.Black
-            | Some (objectNumber, strikePoint) ->
-                let outgoingRay = scene.Objects.[objectNumber].Reflection ray strikePoint
+            | Some (object, strikePoint) ->
+                let outgoingRay = object.Reflection ray strikePoint
                 match outgoingRay with
                 | Absorbs colour ->
                     colour
@@ -118,7 +127,7 @@ module Scene =
 
     /// Trace a ray to this one pixel, updating the PixelStats with the result.
     /// n.b. not thread safe
-    let private traceOnce (print : string -> unit) (scene : Scene) (rand : FloatProducer) (camera : Camera) (maxWidthCoord : int) (maxHeightCoord : int) row col stats =
+    let private traceOnce (scene : Scene) (rand : FloatProducer) (camera : Camera) (maxWidthCoord : int) (maxHeightCoord : int) row col stats =
         let struct(rand1, rand2) = rand.GetTwo ()
         let landingPoint =
             ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
@@ -134,15 +143,10 @@ module Scene =
             |> Option.get
 
         // Here we've hardcoded that the eye is emitting white light through a medium with refractance 1.
-        let result = traceRay 150 scene { Ray = ray ; Colour = Colour.White }
-        //if result = Colour.HotPink then
-        //    print "hi"
-        //    traceRayPrinting print 150 scene { Ray = ray ; Colour = Colour.White ; Refractance = 1.0<ior> }
-        //    |> ignore
-        //    failwith "Stopping."
+        let result = traceRay camera.BounceDepth scene { Ray = ray ; Colour = Colour.White }
         PixelStats.add result stats
 
-    let renderPixel (print : string -> unit) (scene : Scene) (rand : FloatProducer) (camera : Camera) maxWidthCoord maxHeightCoord row col =
+    let renderPixel (_ : string -> unit) (scene : Scene) (rand : FloatProducer) (camera : Camera) maxWidthCoord maxHeightCoord row col =
         // Where does this pixel correspond to, on the imaginary canvas?
         // For the early prototype, we'll just take the upper right quadrant
         // from the camera.
@@ -151,12 +155,12 @@ module Scene =
         let firstTrial = min 5 (camera.SamplesPerPixel / 2)
 
         for _ in 0..firstTrial do
-            traceOnce print scene rand camera maxWidthCoord maxHeightCoord row col stats
+            traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let oldMean = PixelStats.mean stats
 
         for _ in 1..firstTrial do
-            traceOnce print scene rand camera maxWidthCoord maxHeightCoord row col stats
+            traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let newMean = PixelStats.mean stats
         let difference = Pixel.difference newMean oldMean
@@ -168,7 +172,7 @@ module Scene =
         else
 
             for _ in 1..(camera.SamplesPerPixel - 2 * firstTrial - 1) do
-                traceOnce print scene rand camera maxWidthCoord maxHeightCoord row col stats
+                traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
             PixelStats.mean stats
 

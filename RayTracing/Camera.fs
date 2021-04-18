@@ -23,6 +23,8 @@ type Camera =
         FocalLength : float
         /// How many samples will we take per pixel, for anti-aliasing?
         SamplesPerPixel : int
+        /// How many bounces before we consider ourselves to have lost track of a light ray?
+        BounceDepth : int
     }
 
 [<RequireQualifiedAccess>]
@@ -53,4 +55,5 @@ module Camera =
             ViewportXAxis = xAxis
             ViewportYAxis = yAxis
             SamplesPerPixel = samplesPerPixel
+            BounceDepth = 150
         }

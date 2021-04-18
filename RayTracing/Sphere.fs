@@ -17,6 +17,7 @@ type Sphere =
             /// what colour ray does it output and in what direction?
             Reflection : LightRay -> Point -> LightDestination
             RadiusSquared : float
+            BoundingBox : BoundingBox
         }
 
 type SphereStyle =
@@ -152,9 +153,9 @@ module Sphere =
         | SphereStyle.LightSource colour ->
             Absorbs (Pixel.combine incomingLight.Colour colour)
         | SphereStyle.LightSourceCap colour ->
-            let circleCentreZCoord = Point.xCoordinate centre
+            let circleCentreZCoord = Point.coordinate 0 centre
             let zCoordLowerBound = circleCentreZCoord + (radius - (radius / 4.0))
-            let strikeZCoord = Point.xCoordinate strikePoint
+            let strikeZCoord = Point.coordinate 0 strikePoint
             let colour =
                 match Float.compare strikeZCoord zCoordLowerBound with
                 | Greater ->
@@ -238,7 +239,10 @@ module Sphere =
             Radius = radius
             Reflection = reflection style centre radius radiusSquared (Float.compare radius 0.0 = Less)
             RadiusSquared = radiusSquared
+            BoundingBox = BoundingBox.make (Point.sum centre (Point.make -radius -radius -radius)) (Point.sum centre (Point.make radius radius radius))
         }
+
+    let boundingBox (s : Sphere) = s.BoundingBox
 
     let liesOn (point : Point) (sphere : Sphere) : bool =
         liesOn' sphere.Centre sphere.Radius point

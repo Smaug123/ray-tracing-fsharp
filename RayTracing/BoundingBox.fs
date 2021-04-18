@@ -36,57 +36,47 @@ module BoundingBox =
         let mutable tMax = infinity
 
         let bailOut =
-            if Float.equal dx 0.0 then
-                // only if our current x component is between min and max can we proceed
-                not (Point.coordinate 0 box.Min <= x && x <= Point.coordinate 0 box.Max)
-            else
-                let mutable t0 = (Point.coordinate 0 box.Min - x) * invX
-                let mutable t1 = (Point.coordinate 0 box.Max - x) * invX
-                if invX < 0.0 then
-                    let tmp = t1
-                    t1 <- t0
-                    t0 <- tmp
-
-                tMin <- if t0 > tMin then t0 else tMin
-                tMax <- if t1 < tMax then t1 else tMax
-
-                tMax < tMin || 0.0 >= tMax
-
-        if bailOut then false else
-
-        let bailOut =
-            if Float.equal dy 0.0 then
-                not (Point.coordinate 1 box.Min <= y && y <= Point.coordinate 1 box.Max)
-            else
-                let mutable t0 = (Point.coordinate 1 box.Min - y) * invY
-                let mutable t1 = (Point.coordinate 1 box.Max - y) * invY
-
-                if invY < 0.0 then
-                    let tmp = t1
-                    t1 <- t0
-                    t0 <- tmp
-
-                tMin <- if t0 > tMin then t0 else tMin
-                tMax <- if t1 < tMax then t1 else tMax
-
-                tMax < tMin || 0.0 >= tMax
-
-        if bailOut then false else
-
-        if Float.equal dz 0.0 then
-            (Point.coordinate 2 box.Min <= z && z <= Point.coordinate 2 box.Max)
-        else
-            let mutable t0 = (Point.coordinate 2 box.Min - z) * invZ
-            let mutable t1 = (Point.coordinate 2 box.Max - z) * invZ
-
-            if invZ < 0.0 then
+            let mutable t0 = (Point.coordinate 0 box.Min - x) * invX
+            let mutable t1 = (Point.coordinate 0 box.Max - x) * invX
+            if invX < 0.0 then
                 let tmp = t1
                 t1 <- t0
                 t0 <- tmp
 
             tMin <- if t0 > tMin then t0 else tMin
             tMax <- if t1 < tMax then t1 else tMax
-            tMax >= tMin && tMax >= 0.0
+
+            tMax < tMin || 0.0 >= tMax
+
+        if bailOut then false else
+
+        let bailOut =
+            let mutable t0 = (Point.coordinate 1 box.Min - y) * invY
+            let mutable t1 = (Point.coordinate 1 box.Max - y) * invY
+
+            if invY < 0.0 then
+                let tmp = t1
+                t1 <- t0
+                t0 <- tmp
+
+            tMin <- if t0 > tMin then t0 else tMin
+            tMax <- if t1 < tMax then t1 else tMax
+
+            tMax < tMin || 0.0 >= tMax
+
+        if bailOut then false else
+
+        let mutable t0 = (Point.coordinate 2 box.Min - z) * invZ
+        let mutable t1 = (Point.coordinate 2 box.Max - z) * invZ
+
+        if invZ < 0.0 then
+            let tmp = t1
+            t1 <- t0
+            t0 <- tmp
+
+        tMin <- if t0 > tMin then t0 else tMin
+        tMax <- if t1 < tMax then t1 else tMax
+        tMax >= tMin && tMax >= 0.0
 
     let mergeTwo (i : BoundingBox) (j : BoundingBox) : BoundingBox =
         {

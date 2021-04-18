@@ -2,61 +2,49 @@ namespace RayTracing
 
 open System
 
-type Hittable =
-    | Sphere of Sphere
-    | InfinitePlane of InfinitePlane
-
-    member this.Reflection (incoming : LightRay) (strikePoint : Point) =
-        match this with
-        | Sphere s -> s.Reflection incoming strikePoint
-        | InfinitePlane p -> p.Reflection incoming strikePoint
-
-    member this.BoundingBox : BoundingBox option =
-        match this with
-        | Sphere s -> Sphere.boundingBox s |> Some
-        | InfinitePlane _ -> None
-
-[<RequireQualifiedAccess>]
-module Hittable =
-
-    let inline boundingBox (h : Hittable) = h.BoundingBox
-
-    /// Returns the distance we must walk along this ray before we first hit an object, the
-    /// colour the resulting light ray is after the interaction, and the new ray.
-    let hits
-        (ray : Ray)
-        (h : Hittable)
-        : float voption
-        =
-        match h with
-        | Sphere s ->
-            Sphere.firstIntersection s ray
-        | InfinitePlane plane ->
-            InfinitePlane.intersection plane ray
-
 type Scene =
     private
         {
             UnboundedObjects : Hittable array
-            BoundingBoxes : BoundingBoxTree<Hittable> option
+            BoundingBoxes : BoundingBoxTree option
         }
 
 [<RequireQualifiedAccess>]
 module Scene =
 
-    let make (rand : Random) (objects : Hittable array) =
+    let make (objects : Hittable array) =
         let bounded, unbounded =
             objects
             |> Array.map (fun h -> h, Hittable.boundingBox h)
             |> Array.partition (snd >> Option.isSome)
         let bounded = bounded |> Array.map (fun (h, box) -> h, Option.get box)
         let unbounded = unbounded |> Array.map fst
+        let tree =
+            bounded
+            |> BoundingBoxTree.make
         {
             UnboundedObjects = unbounded
-            BoundingBoxes =
-                bounded
-                |> BoundingBoxTree.make rand
+            BoundingBoxes = tree
         }
+
+    let rec bestCandidate (inverseDirections : struct(float * float * float)) (ray : Ray) (bestFloat : float) (bestObject : Hittable) (bestLength : float) (box : BoundingBoxTree) : struct(float * Hittable * float) =
+        match box with
+        | BoundingBoxTree.Leaf (object, box) ->
+            if BoundingBox.hits inverseDirections ray box then
+                match Hittable.hits ray object with
+                | ValueNone -> struct (bestFloat, bestObject, bestLength)
+                | ValueSome point ->
+                    let a = point * point
+                    if a < bestFloat then
+                        struct (a, object, point)
+                    else
+                        struct (bestFloat, bestObject, bestLength)
+            else struct (bestFloat, bestObject, bestLength)
+        | BoundingBoxTree.Branch (left, right, all) ->
+            if BoundingBox.hits inverseDirections ray all then
+                let struct (bestFloat, bestObject, bestLength) = bestCandidate inverseDirections ray bestFloat bestObject bestLength left
+                bestCandidate inverseDirections ray bestFloat bestObject bestLength right
+            else struct (bestFloat, bestObject, bestLength)
 
     let hitObject
         (s : Scene)
@@ -66,40 +54,24 @@ module Scene =
         let mutable best = Unchecked.defaultof<_>
         let mutable bestLength = nan
         let mutable bestFloat = infinity
+
+        match s.BoundingBoxes with
+        | None -> ()
+        | Some boundingBoxes ->
+            let struct(f, o, l) = bestCandidate (BoundingBox.inverseDirections ray) ray bestFloat best bestLength boundingBoxes
+            bestFloat <- f
+            best <- o
+            bestLength <- l
+
         for i in s.UnboundedObjects do
             match Hittable.hits ray i with
             | ValueNone -> ()
             | ValueSome point ->
                 let a = point * point
-                match Float.compare a bestFloat with
-                | Less ->
+                if Float.compare a bestFloat = Less then
                     bestFloat <- a
                     best <- i
                     bestLength <- point
-                | _ -> ()
-
-        match s.BoundingBoxes with
-        | None -> ()
-        | Some boundingBoxes ->
-            let rec go (box : BoundingBoxTree<Hittable>) =
-                match box with
-                | BoundingBoxTree.Leaf (object, box) ->
-                    if BoundingBox.hits ray box then
-                        match Hittable.hits ray object with
-                        | ValueNone -> ()
-                        | ValueSome point ->
-                            let a = point * point
-                            match Float.compare a bestFloat with
-                            | Less ->
-                                bestFloat <- a
-                                best <- object
-                                bestLength <- point
-                            | _ -> ()
-                | BoundingBoxTree.Branch (_, left, right, all) ->
-                    if BoundingBox.hits ray all then
-                        go left
-                        go right
-            go boundingBoxes
 
         if Double.IsNaN bestLength then None else
         Some (best, Ray.walkAlong ray bestLength)

@@ -29,8 +29,6 @@ type SampleImages =
 [<RequireQualifiedAccess>]
 module SampleImages =
 
-    let systemRandom = Random ()
-
     let gradient (progressIncrement : float<progress> -> unit) (_ : string -> unit) : float<progress> * Image =
         let pixelAt height width =
             {
@@ -61,7 +59,7 @@ module SampleImages =
             Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 0uy ; Green = 255uy ; Blue = 255uy }) (Point.make 1.5 0.5 8.0) 0.5)
             Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.PureReflection (0.5<albedo>, Colour.White)) (Point.make 0.0 -1.0 0.0) (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get)) // Floor rug
         |]
-        |> Scene.make (Random ())
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let fuzzyPlane (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
@@ -75,7 +73,7 @@ module SampleImages =
             Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 0uy ; Green = 255uy ; Blue = 255uy }) (Point.make 1.5 0.5 8.0) 0.5)
             Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.FuzzedReflection (1.0<albedo>, Colour.White, 0.75<fuzz>, random)) (Point.make 0.0 -1.0 0.0) (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get)) // Floor rug
         |]
-        |> Scene.make systemRandom
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let spheres (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
@@ -105,7 +103,7 @@ module SampleImages =
             // Light pad behind us
             Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource { Red = 15uy ; Green = 15uy ; Blue = 15uy }) (Point.make 0.0 1.0 -1.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get))
         |]
-        |> Scene.make systemRandom
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let insideSphere (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
@@ -131,7 +129,7 @@ module SampleImages =
             // Light pad behind us
             Hittable.InfinitePlane (InfinitePlane.make (InfinitePlaneStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 -5.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get))
         |]
-        |> Scene.make systemRandom
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let totalRefraction (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
@@ -157,7 +155,7 @@ module SampleImages =
             // Light around us
             Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
         |]
-        |> Scene.make systemRandom
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let glassSphere (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
@@ -171,7 +169,7 @@ module SampleImages =
         let pixels = 200
         [|
             // Floor
-            Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (0.5<albedo>, { Red = 204uy ; Green = 204uy ; Blue = 0uy }, random1)) (Point.make 0.0 -100.5 1.0) 100.0)
+            Hittable.UnboundedSphere (Sphere.make (SphereStyle.LambertReflection (0.5<albedo>, { Red = 204uy ; Green = 204uy ; Blue = 0uy }, random1)) (Point.make 0.0 -100.5 1.0) 100.0)
 
             // Right sphere
             Hittable.Sphere (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 204uy ; Green = 153uy ; Blue = 51uy })) (Point.make 1.0 0.0 1.0) 0.5)
@@ -181,9 +179,9 @@ module SampleImages =
             Hittable.Sphere (Sphere.make (SphereStyle.Glass (0.9<albedo>, Colour.White, 1.5<ior>, random3)) (Point.make -1.0 0.0 1.0) 0.5)
 
             // Light around us
-            Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
+            Hittable.UnboundedSphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
         |]
-        |> Scene.make systemRandom
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let movedCamera (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
@@ -211,7 +209,7 @@ module SampleImages =
             // Light around us
             Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 130uy ; Green = 130uy ; Blue = 200uy }) (Point.make 0.0 0.0 0.0) 200.0)
         |]
-        |> Scene.make systemRandom
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let randomSpheres (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
@@ -219,7 +217,7 @@ module SampleImages =
         let origin = Point.make 13.0 2.0 -3.0
         let camera =
             Camera.makeBasic 500 10.0 aspectRatio origin (Point.differenceToThenFrom (Point.make 0.0 0.0 0.0) origin |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
-        let pixels = 100
+        let pixels = 800
 
         let spheres =
             [|
@@ -234,39 +232,54 @@ module SampleImages =
                             if Float.compare materialChoice 0.8 = Less then
                                 // diffuse
                                 let albedo = floatProducer.Get () * floatProducer.Get () * 1.0<albedo>
-                                yield Sphere.make (SphereStyle.LambertReflection (albedo, Colour.random rand, floatProducer)) centre 0.2
+                                yield
+                                    Sphere.make (SphereStyle.LambertReflection (albedo, Colour.random rand, floatProducer)) centre 0.2
+                                    |> Hittable.Sphere
                             elif Float.compare materialChoice 0.95 = Less then
                                 // metal
                                 let albedo = floatProducer.Get () / 2.0 * 1.0<albedo> + 0.5<albedo>
                                 let fuzz = floatProducer.Get () / 2.0 * 1.0<fuzz>
-                                yield Sphere.make (SphereStyle.FuzzedReflection (albedo, Colour.random rand, fuzz, floatProducer)) centre 0.2
+                                yield
+                                    Sphere.make (SphereStyle.FuzzedReflection (albedo, Colour.random rand, fuzz, floatProducer)) centre 0.2
+                                    |> Hittable.Sphere
                             else
                                 // glass
-                                yield Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.5<ior>, floatProducer)) centre 0.2
+                                yield
+                                    Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.5<ior>, floatProducer)) centre 0.2
+                                    |> Hittable.Sphere
 
 
                 let rand = Random ()
                 let floatProducer = FloatProducer rand
-                yield Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.5<ior>, floatProducer)) (Point.make 0.0 1.0 0.0) 1.0
+                yield
+                    Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.5<ior>, floatProducer)) (Point.make 0.0 1.0 0.0) 1.0
+                    |> Hittable.Sphere
 
                 let rand = Random ()
                 let floatProducer = FloatProducer rand
-                yield Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, { Red = 80uy ; Green = 40uy ; Blue = 20uy }, floatProducer)) (Point.make -4.0 1.0 0.0) 1.0
+                yield
+                    Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, { Red = 80uy ; Green = 40uy ; Blue = 20uy }, floatProducer)) (Point.make -4.0 1.0 0.0) 1.0
+                    |> Hittable.Sphere
 
-                yield Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 180uy ; Green = 150uy ; Blue = 128uy })) (Point.make 4.0 1.0 0.0) 1.0
+                yield
+                    Sphere.make (SphereStyle.PureReflection (1.0<albedo>, { Red = 180uy ; Green = 150uy ; Blue = 128uy })) (Point.make 4.0 1.0 0.0) 1.0
+                    |> Hittable.Sphere
 
                 // Ceiling
-                yield Sphere.make (SphereStyle.LightSource { Colour.White with Red = 200uy ; Green = 200uy }) (Point.make 0.0 0.0 0.0) 2000.0
+                yield
+                    Sphere.make (SphereStyle.LightSource { Colour.White with Red = 200uy ; Green = 200uy }) (Point.make 0.0 0.0 0.0) 2000.0
+                    |> Hittable.UnboundedSphere
 
                 // Floor
                 let rand = Random ()
                 let floatProducer = FloatProducer rand
-                yield Sphere.make (SphereStyle.LambertReflection (0.5<albedo>, Colour.White, floatProducer)) (Point.make 0.0 -1000.0 0.0) 1000.0
+                yield
+                    Sphere.make (SphereStyle.LambertReflection (0.5<albedo>, Colour.White, floatProducer)) (Point.make 0.0 -1000.0 0.0) 1000.0
+                    |> Hittable.UnboundedSphere
             |]
 
         spheres
-        |> Array.map Hittable.Sphere
-        |> Scene.make systemRandom
+        |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
     let get (s : SampleImages) : (float<progress> -> unit) -> (string -> unit) -> float<progress> * Image =

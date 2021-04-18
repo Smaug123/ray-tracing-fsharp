@@ -10,28 +10,83 @@ type BoundingBox =
 [<RequireQualifiedAccess>]
 module BoundingBox =
 
+    let volume (box : BoundingBox) =
+        (Point.coordinate 0 box.Max - Point.coordinate 0 box.Min) *
+        (Point.coordinate 1 box.Max - Point.coordinate 1 box.Min) *
+        (Point.coordinate 2 box.Max - Point.coordinate 2 box.Min)
+
     let make (min : Point) (max : Point) =
         {
             Min = min
             Max = max
         }
 
-    let hits (r : Ray) (box : BoundingBox) : bool =
-        let mutable answer = true
-        let mutable dimension = 0
-        while answer && dimension < 3 do
-            let inverseDirection = 1.0 / (Ray.vector r |> UnitVector.coordinate dimension)
-            let coord = Ray.origin r |> Point.coordinate dimension
-            let mutable t0 = (Point.coordinate dimension box.Min - coord) * inverseDirection
-            let mutable t1 = (Point.coordinate dimension box.Max - coord) * inverseDirection
 
-            if Float.compare inverseDirection 0.0 = Less then
-                let tmp = t0
-                t0 <- t1
-                t1 <- tmp
+    let inverseDirections (ray : Ray) =
+        struct(1.0 / (Ray.vector ray |> UnitVector.coordinate 0), 1.0 / (Ray.vector ray |> UnitVector.coordinate 1), 1.0 / (Ray.vector ray |> UnitVector.coordinate 2))
 
-            if t1 < t0 then answer <- false else dimension <- dimension + 1
-        answer
+    let hits (struct(invX, invY, invZ)) { Ray.Origin = Point (x, y, z) ; Vector = UnitVector (Vector (dx, dy, dz))} (box : BoundingBox) : bool =
+        // The line is (x, y, z) + t (dx, dy, dz)
+        // The line goes through the cuboid iff it passes through the interval in each component:
+        //   there is t such that boxMin.X <= x + t dx <= boxMax.X,
+        // and moreover the acceptable t brackets all overlap.
+        // That is,
+        //  boxMin.X - x <= t dx <= boxMax.X - x
+        let mutable tMin = -infinity
+        let mutable tMax = infinity
+
+        let bailOut =
+            if Float.equal dx 0.0 then
+                // only if our current x component is between min and max can we proceed
+                not (Point.coordinate 0 box.Min <= x && x <= Point.coordinate 0 box.Max)
+            else
+                let mutable t0 = (Point.coordinate 0 box.Min - x) * invX
+                let mutable t1 = (Point.coordinate 0 box.Max - x) * invX
+                if invX < 0.0 then
+                    let tmp = t1
+                    t1 <- t0
+                    t0 <- tmp
+
+                tMin <- if t0 > tMin then t0 else tMin
+                tMax <- if t1 < tMax then t1 else tMax
+
+                tMax < tMin || 0.0 >= tMax
+
+        if bailOut then false else
+
+        let bailOut =
+            if Float.equal dy 0.0 then
+                not (Point.coordinate 1 box.Min <= y && y <= Point.coordinate 1 box.Max)
+            else
+                let mutable t0 = (Point.coordinate 1 box.Min - y) * invY
+                let mutable t1 = (Point.coordinate 1 box.Max - y) * invY
+
+                if invY < 0.0 then
+                    let tmp = t1
+                    t1 <- t0
+                    t0 <- tmp
+
+                tMin <- if t0 > tMin then t0 else tMin
+                tMax <- if t1 < tMax then t1 else tMax
+
+                tMax < tMin || 0.0 >= tMax
+
+        if bailOut then false else
+
+        if Float.equal dz 0.0 then
+            (Point.coordinate 2 box.Min <= z && z <= Point.coordinate 2 box.Max)
+        else
+            let mutable t0 = (Point.coordinate 2 box.Min - z) * invZ
+            let mutable t1 = (Point.coordinate 2 box.Max - z) * invZ
+
+            if invZ < 0.0 then
+                let tmp = t1
+                t1 <- t0
+                t0 <- tmp
+
+            tMin <- if t0 > tMin then t0 else tMin
+            tMax <- if t1 < tMax then t1 else tMax
+            tMax >= tMin && tMax >= 0.0
 
     let mergeTwo (i : BoundingBox) (j : BoundingBox) : BoundingBox =
         {
@@ -51,33 +106,4 @@ module BoundingBox =
         if boxes.Length = 0 then None else
         boxes
         |> Array.reduce mergeTwo
-        |> Some
-
-type BoundingBoxTree<'a when 'a : not struct> =
-    | Leaf of hittable : 'a * BoundingBox
-    | Branch of axis : int * left : BoundingBoxTree<'a> * right : BoundingBoxTree<'a> * all : BoundingBox
-
-[<RequireQualifiedAccess>]
-module BoundingBoxTree =
-    let make<'a when 'a : not struct> (rand : System.Random) (boxes : ('a * BoundingBox) array) : BoundingBoxTree<'a> option =
-        if boxes.Length = 0 then None else
-
-        let rec go (boxes : ('a * BoundingBox) array) =
-            let boundAll =
-                BoundingBox.merge (boxes |> Array.map snd) |> Option.get
-
-            if boxes.Length = 1 then Leaf boxes.[0] else
-            if boxes.Length = 2 then Branch (0, Leaf boxes.[0], Leaf boxes.[1], boundAll) else
-
-            let axis = abs (rand.Next ()) % 3
-            let comparer (box : BoundingBox) =
-                Float.compare (Point.coordinate axis box.Min) (Point.coordinate axis box.Max) = Less
-            let boxes =
-                boxes
-                |> Array.sortBy (snd >> comparer)
-            let leftHalf = boxes.[0..boxes.Length / 2]
-            let rightHalf = boxes.[(boxes.Length / 2) + 1..]
-            Branch (axis, go leftHalf, go rightHalf, boundAll)
-
-        go boxes
         |> Some

@@ -6,12 +6,10 @@ open System.Runtime.CompilerServices
 /// We don't let you compare these for equality, because floats are hard.
 [<NoEquality ; NoComparison ; Struct ; IsReadOnly>]
 type Point =
-    private
     | Point of struct(float * float * float)
 
 [<NoEquality ; NoComparison ; Struct ; IsReadOnly>]
 type Vector =
-    private
     | Vector of struct(float * float * float)
 
 [<Struct ; IsReadOnly ; NoEquality ; NoComparison>]
@@ -80,10 +78,22 @@ module UnitVector =
             Vector (0.0, 0.0, 1.0) |> UnitVector
         |]
 
+    let inline coordinate (i : int) (UnitVector (Vector (a, b, c))) : float =
+        match i with
+        | 0 -> a
+        | 1 -> b
+        | 2 -> c
+        | _ -> failwithf "Bad coordinate: %i" i
+
 [<RequireQualifiedAccess>]
 module Point =
 
-    let xCoordinate (Point (x, _, _)) = x
+    let inline coordinate (i : int) (Point (x, y, z)) =
+        match i with
+        | 0 -> x
+        | 1 -> y
+        | 2 -> z
+        | _ -> failwithf "Bad coordinate: %i" i
 
     let sum (Point (a, b, c)) (Point (x, y, z)) : Point =
         Point (a + x, b + y, c + z)

@@ -13,10 +13,13 @@
         <Compile Include="Ray.fs" />
         <Compile Include="Plane.fs" />
         <Compile Include="LightRay.fs" />
+        <Compile Include="BoundingBox.fs" />
         <Compile Include="Sphere.fs" />
         <Compile Include="InfinitePlane.fs" />
         <Compile Include="ImageOutput.fs" />
         <Compile Include="Camera.fs" />
+        <Compile Include="Hittable.fs" />
+        <Compile Include="BoundingBoxTree.fs" />
         <Compile Include="Scene.fs" />
     </ItemGroup>
 

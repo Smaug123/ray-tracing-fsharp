@@ -1,6 +1,12 @@
 namespace RayTracing
 
-type Ray
+type Ray =
+    {
+        /// For performance reasons, this is public, but please don't use it
+        Origin : Point
+        /// For performance reasons, this is public, but please don't use it
+        Vector : UnitVector
+    }
 
 [<RequireQualifiedAccess>]
 module Ray =
@@ -13,7 +19,7 @@ module Ray =
 
     val liesOn : Point -> Ray -> bool
 
-    val vector : Ray -> UnitVector
-    val origin : Ray -> Point
+    val inline vector : Ray -> UnitVector
+    val inline origin : Ray -> Point
 
     val flip : Ray -> Ray

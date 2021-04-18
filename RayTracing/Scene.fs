@@ -37,9 +37,8 @@ module Hittable =
 type Scene =
     private
         {
-            BoundedObjects : Hittable array
             UnboundedObjects : Hittable array
-            BoundingBoxes : BoundingBoxTree option
+            BoundingBoxes : BoundingBoxTree<Hittable> option
         }
 
 [<RequireQualifiedAccess>]
@@ -54,10 +53,8 @@ module Scene =
         let unbounded = unbounded |> Array.map fst
         {
             UnboundedObjects = unbounded
-            BoundedObjects = bounded |> Array.map fst
             BoundingBoxes =
                 bounded
-                |> Array.map snd
                 |> BoundingBoxTree.make rand
         }
 
@@ -69,32 +66,40 @@ module Scene =
         let mutable best = Unchecked.defaultof<_>
         let mutable bestLength = nan
         let mutable bestFloat = infinity
-        for i in 0..s.UnboundedObjects.Length - 1 do
-            match Hittable.hits ray s.UnboundedObjects.[i] with
+        for i in s.UnboundedObjects do
+            match Hittable.hits ray i with
             | ValueNone -> ()
             | ValueSome point ->
                 let a = point * point
                 match Float.compare a bestFloat with
                 | Less ->
                     bestFloat <- a
-                    best <- s.UnboundedObjects.[i]
+                    best <- i
                     bestLength <- point
                 | _ -> ()
 
         match s.BoundingBoxes with
         | None -> ()
         | Some boundingBoxes ->
-            for i in BoundingBoxTree.getHits ray boundingBoxes do
-                match Hittable.hits ray s.BoundedObjects.[i] with
-                | ValueNone -> ()
-                | ValueSome point ->
-                    let a = point * point
-                    match Float.compare a bestFloat with
-                    | Less ->
-                        bestFloat <- a
-                        best <- s.BoundedObjects.[i]
-                        bestLength <- point
-                    | _ -> ()
+            let rec go (box : BoundingBoxTree<Hittable>) =
+                match box with
+                | BoundingBoxTree.Leaf (object, box) ->
+                    if BoundingBox.hits ray box then
+                        match Hittable.hits ray object with
+                        | ValueNone -> ()
+                        | ValueSome point ->
+                            let a = point * point
+                            match Float.compare a bestFloat with
+                            | Less ->
+                                bestFloat <- a
+                                best <- object
+                                bestLength <- point
+                            | _ -> ()
+                | BoundingBoxTree.Branch (_, left, right, all) ->
+                    if BoundingBox.hits ray all then
+                        go left
+                        go right
+            go boundingBoxes
 
         if Double.IsNaN bestLength then None else
         Some (best, Ray.walkAlong ray bestLength)

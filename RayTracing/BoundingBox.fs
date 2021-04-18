@@ -22,10 +22,14 @@ module BoundingBox =
         while answer && dimension < 3 do
             let inverseDirection = 1.0 / (Ray.vector r |> UnitVector.coordinate dimension)
             let coord = Ray.origin r |> Point.coordinate dimension
-            let t0 = (Point.coordinate dimension box.Min - coord) * inverseDirection
-            let t1 = (Point.coordinate dimension box.Max - coord) * inverseDirection
-            let t0, t1 =
-                if Float.compare inverseDirection 0.0 = Less then t1, t0 else t0, t1
+            let mutable t0 = (Point.coordinate dimension box.Min - coord) * inverseDirection
+            let mutable t1 = (Point.coordinate dimension box.Max - coord) * inverseDirection
+
+            if Float.compare inverseDirection 0.0 = Less then
+                let tmp = t0
+                t0 <- t1
+                t1 <- tmp
+
             if t1 < t0 then answer <- false else dimension <- dimension + 1
         answer
 
@@ -49,16 +53,16 @@ module BoundingBox =
         |> Array.reduce mergeTwo
         |> Some
 
-type BoundingBoxTree =
-    | Leaf of index : int * BoundingBox
-    | Branch of axis : int * left : BoundingBoxTree * right : BoundingBoxTree * all : BoundingBox
+type BoundingBoxTree<'a when 'a : not struct> =
+    | Leaf of hittable : 'a * BoundingBox
+    | Branch of axis : int * left : BoundingBoxTree<'a> * right : BoundingBoxTree<'a> * all : BoundingBox
 
 [<RequireQualifiedAccess>]
 module BoundingBoxTree =
-    let make (rand : System.Random) (boxes : BoundingBox array) : BoundingBoxTree option =
+    let make<'a when 'a : not struct> (rand : System.Random) (boxes : ('a * BoundingBox) array) : BoundingBoxTree<'a> option =
         if boxes.Length = 0 then None else
 
-        let rec go (boxes : (int * BoundingBox) array) =
+        let rec go (boxes : ('a * BoundingBox) array) =
             let boundAll =
                 BoundingBox.merge (boxes |> Array.map snd) |> Option.get
 
@@ -75,17 +79,5 @@ module BoundingBoxTree =
             let rightHalf = boxes.[(boxes.Length / 2) + 1..]
             Branch (axis, go leftHalf, go rightHalf, boundAll)
 
-        go (boxes |> Array.mapi (fun i j -> (i, j)))
+        go boxes
         |> Some
-
-    let rec getHits (ray : Ray) (boxes : BoundingBoxTree) : int seq =
-        seq {
-            match boxes with
-            | Leaf (i, box) ->
-                if BoundingBox.hits ray box then
-                    yield i
-            | Branch (_, left, right, all) ->
-                if BoundingBox.hits ray all then
-                    yield! getHits ray left
-                    yield! getHits ray right
-        }

@@ -219,7 +219,7 @@ module SampleImages =
         let origin = Point.make 13.0 2.0 -3.0
         let camera =
             Camera.makeBasic 500 10.0 aspectRatio origin (Point.differenceToThenFrom (Point.make 0.0 0.0 0.0) origin |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
-        let pixels = 800
+        let pixels = 100
 
         let spheres =
             [|

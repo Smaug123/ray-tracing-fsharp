@@ -30,6 +30,7 @@ module Camera =
 
     /// View angle is in radians (specified arbitrarily)
     let makeBasic
+        (samplesPerPixel : int)
         (focalLength : float)
         (aspectRatio : float)
         (origin : Point)
@@ -51,5 +52,5 @@ module Camera =
             View = view
             ViewportXAxis = xAxis
             ViewportYAxis = yAxis
-            SamplesPerPixel = 60
+            SamplesPerPixel = samplesPerPixel
         }

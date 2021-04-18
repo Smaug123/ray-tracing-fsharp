@@ -59,6 +59,15 @@ module Colour =
             Blue = 180uy
         }
 
+    let random (rand : Random) =
+        let buffer = Array.zeroCreate<byte> 3
+        rand.NextBytes buffer
+        {
+            Red = buffer.[0]
+            Green = buffer.[1]
+            Blue = buffer.[2]
+        }
+
 type PixelStats =
     private
         {

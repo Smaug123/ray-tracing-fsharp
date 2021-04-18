@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="System.Drawing.Common" Version="6.0.0-preview.3.21201.4" />
       <PackageReference Include="System.IO.Abstractions" Version="13.2.28" />
     </ItemGroup>
 

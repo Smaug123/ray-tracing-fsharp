@@ -97,7 +97,9 @@ module Scene =
         : Pixel
         =
         let rec go (bounces : int) (ray : LightRay) : Pixel =
-            if bounces > maxCount then Colour.HotPink else
+            if bounces > maxCount then
+                if ray.Colour = Colour.Black then Colour.Black else Colour.HotPink
+            else
 
             let thingsWeHit = hitObject scene ray.Ray
             match thingsWeHit with
@@ -159,7 +161,7 @@ module Scene =
         let newMean = PixelStats.mean stats
         let difference = Pixel.difference newMean oldMean
 
-        if difference < 2 then
+        if difference = 0 then
            // The mean didn't really change when we added another five samples; assume it's not going to change
            // with more.
            newMean

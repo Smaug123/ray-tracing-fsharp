@@ -10,8 +10,9 @@ type SampleImages =
     | FuzzyFloor
     | InsideSphere
     | TotalRefraction
-    | HollowGlassSphere
+    | GlassSphere
     | MovedCamera
+
     static member Parse (s : string) =
         match s with
         | "spheres" -> SampleImages.Spheres
@@ -21,7 +22,7 @@ type SampleImages =
         | "inside-sphere" -> SampleImages.InsideSphere
         | "total-refraction" -> SampleImages.TotalRefraction
         | "moved-camera" -> SampleImages.MovedCamera
-        | "hollow-glass" -> SampleImages.HollowGlassSphere
+        | "glass" -> SampleImages.GlassSphere
         | "random-spheres" -> SampleImages.RandomSpheres
         | s -> failwithf "Unrecognised arg: %s" s
 
@@ -168,11 +169,10 @@ module SampleImages =
         }
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
-    let hollowGlassSphere (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
+    let glassSphere (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
         let random1 = Random () |> FloatProducer
         let random2 = Random () |> FloatProducer
         let random3 = Random () |> FloatProducer
-        let random4 = Random () |> FloatProducer
         let aspectRatio = 16.0 / 9.0
         let origin = Point.make 0.0 0.0 0.0
         let camera =
@@ -190,7 +190,6 @@ module SampleImages =
                     Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, { Red = 25uy ; Green = 50uy ; Blue = 120uy }, random2)) (Point.make 0.0 0.0 1.0) 0.5)
                     // Left sphere
                     Hittable.Sphere (Sphere.make (SphereStyle.Glass (0.9<albedo>, Colour.White, 1.5<ior>, random3)) (Point.make -1.0 0.0 1.0) 0.5)
-                    Hittable.Sphere (Sphere.make (SphereStyle.Glass (1.0<albedo>, Colour.White, 1.0<ior> / 1.5, random4)) (Point.make -1.0 0.0 1.0) -0.4)
 
                     // Light around us
                     Hittable.Sphere (Sphere.make (SphereStyle.LightSource { Red = 80uy ; Green = 80uy ; Blue = 150uy }) (Point.make 0.0 0.0 0.0) 200.0)
@@ -292,6 +291,6 @@ module SampleImages =
         | FuzzyFloor -> fuzzyPlane
         | InsideSphere -> insideSphere
         | TotalRefraction -> totalRefraction
-        | HollowGlassSphere -> hollowGlassSphere
+        | GlassSphere -> glassSphere
         | MovedCamera -> movedCamera
         | RandomSpheres -> randomSpheres

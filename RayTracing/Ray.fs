@@ -1,11 +1,10 @@
 namespace RayTracing
 
 type Ray =
-    private
-        {
-            Origin : Point
-            Vector : UnitVector
-        }
+    {
+        Origin : Point
+        Vector : UnitVector
+    }
 
 [<RequireQualifiedAccess>]
 module Ray =
@@ -47,8 +46,8 @@ module Ray =
                 Float.equal t t3
             else false
 
-    let vector r = r.Vector
-    let origin r = r.Origin
+    let inline vector r = r.Vector
+    let inline origin r = r.Origin
 
     let flip (r : Ray) =
         {

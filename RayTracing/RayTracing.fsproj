@@ -8,6 +8,7 @@
         <Compile Include="Float.fs" />
         <Compile Include="Point.fs" />
         <Compile Include="Pixel.fs" />
+        <Compile Include="Texture.fs" />
         <Compile Include="Domain.fs" />
         <Compile Include="Ray.fsi" />
         <Compile Include="Ray.fs" />

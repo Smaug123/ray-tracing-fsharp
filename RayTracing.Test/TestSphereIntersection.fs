@@ -13,7 +13,7 @@ module TestSphereIntersection =
         gen {
             let! origin = TestUtils.pointGen
             let! radius = Arb.generate<NormalFloat>
-            return Sphere.make (SphereStyle.LightSource Colour.White) origin radius.Get
+            return Sphere.make (SphereStyle.LightSource (Texture.Colour Colour.White)) origin radius.Get
         }
 
     [<Test>]
@@ -36,7 +36,7 @@ module TestSphereIntersection =
         let ray =
             Ray.make' (Point.make 1.462205539 -4.888279676 7.123293244) (Vector.make -9.549697616 4.400018428 10.41024923)
             |> Option.get
-        let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Colour.White)) (Point.make -5.688391601 -5.360125644 9.074300761) 8.199747973
+        let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Texture.Colour Colour.White)) (Point.make -5.688391601 -5.360125644 9.074300761) 8.199747973
 
         let intersection = Sphere.firstIntersection sphere ray
 

@@ -22,27 +22,27 @@ type Sphere =
 
 type SphereStyle =
     /// An emitter of light.
-    | LightSource of Pixel
+    | LightSource of Texture
     /// An absorbing black sphere, with a small light-emitting cap.
     | LightSourceCap of Pixel
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
-    | PureReflection of albedo : float<albedo> * colour : Pixel
+    | PureReflection of albedo : float<albedo> * texture : Texture
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
     /// Fuzz must be between 0 (no fuzziness) and 1 (lots of fuzziness)
-    | FuzzedReflection of  albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * FloatProducer
+    | FuzzedReflection of  albedo : float<albedo> * texture : Texture * fuzz : float<fuzz> * FloatProducer
     /// An ideal matte (diffusely-reflecting) surface: apparent brightness of the
     /// surface is the same regardless of the angle of view.
     /// Albedo must be between 0 and 1.
-    | LambertReflection of albedo : float<albedo> * colour : Pixel * FloatProducer
+    | LambertReflection of albedo : float<albedo> * texture : Texture * FloatProducer
     /// A refracting sphere with the given ratio `ior` of its index of refraction with that of the medium on
     /// the other side of the surface. The convention is such that a solid sphere, with a light ray
     /// entering from outside, should have index of refraction greater than 1.
     /// The probability is the probability that a ray will refract, so 0 yields a perfectly reflecting sphere.
-    | Dielectric of albedo : float<albedo> * colour : Pixel * boundaryRefractance : float<ior> * refraction : float<prob> * FloatProducer
+    | Dielectric of albedo : float<albedo> * texture : Texture * boundaryRefractance : float<ior> * refraction : float<prob> * FloatProducer
     /// A glass material which uses Schlick's approximation for reflectance probability.
-    | Glass of albedo : float<albedo> * colour : Pixel * float<ior> * FloatProducer
+    | Glass of albedo : float<albedo> * texture : Texture * float<ior> * FloatProducer
 
 type Orientation =
     | Inside
@@ -50,6 +50,20 @@ type Orientation =
 
 [<RequireQualifiedAccess>]
 module Sphere =
+
+    /// Parameterisation of a sphere of radius 1 centred on 0,0,0 by points in the box [0, 1] x [0, 1]
+    let planeMap (radius : float) (centre : Point) (theta : float) (phi : float) : Point =
+        let theta = theta * System.Math.PI
+        let phi = phi * System.Math.PI * 2.0 - System.Math.PI
+        Point.make (radius * sin theta * cos phi) (radius * sin theta * sin phi) (radius * cos theta)
+        |> Point.sum centre
+
+    /// Give back the theta and phi (scaled to 0..1 each) that result in this point.
+    let planeMapInverse (radius : float) (centre : Point) (p : Point) : struct(float * float) =
+        let (Vector(x, y, z)) = Point.differenceToThenFrom p centre |> Vector.scale (1.0 / radius)
+        let theta = acos z
+        let phi = atan2 y x
+        struct(theta / System.Math.PI, ((phi + System.Math.PI) / (2.0 * System.Math.PI)))
 
     /// A ray hits the sphere with centre `centre` at point `p`.
     /// This function gives the outward-pointing normal.
@@ -150,8 +164,11 @@ module Sphere =
             |> Option.get
 
         match style with
-        | SphereStyle.LightSource colour ->
-            Absorbs (Pixel.combine incomingLight.Colour colour)
+        | SphereStyle.LightSource texture ->
+            texture
+            |> Texture.colourAt strikePoint
+            |> Pixel.combine incomingLight.Colour
+            |> Absorbs
         | SphereStyle.LightSourceCap colour ->
             let circleCentreZCoord = Point.coordinate 0 centre
             let zCoordLowerBound = circleCentreZCoord + (radius - (radius / 4.0))
@@ -164,7 +181,7 @@ module Sphere =
                     Colour.Black
             Absorbs colour
 
-        | SphereStyle.LambertReflection (albedo, colour, rand) ->
+        | SphereStyle.LambertReflection (albedo, texture, rand) ->
             let outgoing =
                 let sphereCentre = Ray.walkAlong normal 1.0
                 let mutable answer = Unchecked.defaultof<_>
@@ -180,27 +197,35 @@ module Sphere =
                 answer
 
             let newColour =
-                Pixel.combine incomingLight.Colour colour
+                texture
+                |> Texture.colourAt strikePoint
+                |> Pixel.combine incomingLight.Colour
                 |> Pixel.darken albedo
             Continues { Ray = outgoing ; Colour = newColour }
 
-        | SphereStyle.PureReflection (albedo, colour) ->
+        | SphereStyle.PureReflection (albedo, texture) ->
             let darkened =
-                Pixel.combine incomingLight.Colour colour
+                texture
+                |> Texture.colourAt strikePoint
+                |> Pixel.combine incomingLight.Colour
                 |> Pixel.darken albedo
 
             Continues { Ray = fuzzedReflection None ; Colour = darkened }
 
-        | SphereStyle.FuzzedReflection (albedo, colour, fuzz, random) ->
+        | SphereStyle.FuzzedReflection (albedo, texture, fuzz, random) ->
             let darkened =
-                Pixel.combine incomingLight.Colour colour
+                texture
+                |> Texture.colourAt strikePoint
+                |> Pixel.combine incomingLight.Colour
                 |> Pixel.darken albedo
 
             Continues { Ray = fuzzedReflection (Some (fuzz, random)) ; Colour = darkened }
 
-        | SphereStyle.Dielectric (albedo, colour, sphereRefractance, refractionProb, random) ->
+        | SphereStyle.Dielectric (albedo, texture, sphereRefractance, refractionProb, random) ->
             let newColour =
-                Pixel.combine incomingLight.Colour colour
+                texture
+                |> Texture.colourAt strikePoint
+                |> Pixel.combine incomingLight.Colour
                 |> Pixel.darken albedo
 
             let rand = random.Get ()
@@ -212,9 +237,11 @@ module Sphere =
                 let incomingCos = UnitVector.dot (Ray.vector incomingLight.Ray) (Ray.vector normal)
                 Continues { Ray = refract incomingCos sphereRefractance ; Colour = newColour }
 
-        | SphereStyle.Glass (albedo, colour, sphereRefractance, random) ->
+        | SphereStyle.Glass (albedo, texture, sphereRefractance, random) ->
             let newColour =
-                Pixel.combine incomingLight.Colour colour
+                texture
+                |> Texture.colourAt strikePoint
+                |> Pixel.combine incomingLight.Colour
                 |> Pixel.darken albedo
 
             let incomingCos = UnitVector.dot (UnitVector.flip (Ray.vector incomingLight.Ray)) (Ray.vector normal)

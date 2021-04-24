@@ -2,7 +2,7 @@ namespace RayTracing
 
 type InfinitePlaneStyle =
     /// An emitter of light.
-    | LightSource of Pixel
+    | LightSource of Texture
     /// Perfect reflection, as you would see from a smooth flat metal surface.
     /// Albedo must be between 0 and 1.
     | PureReflection of albedo : float<albedo> * colour : Pixel
@@ -76,8 +76,11 @@ module InfinitePlane =
         =
         fun incomingRay strikePoint ->
             match style with
-            | InfinitePlaneStyle.LightSource colour ->
-                Absorbs (Pixel.combine incomingRay.Colour colour)
+            | InfinitePlaneStyle.LightSource texture ->
+                texture
+                |> Texture.colourAt strikePoint
+                |> Pixel.combine incomingRay.Colour
+                |> Absorbs
 
             | InfinitePlaneStyle.FuzzedReflection (albedo, colour, fuzz, rand) ->
                 let newColour = newColour incomingRay.Colour albedo colour

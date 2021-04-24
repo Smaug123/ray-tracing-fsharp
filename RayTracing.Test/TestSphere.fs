@@ -140,3 +140,41 @@ module TestSphere =
         property
         |> Prop.forAll arb
         |> Check.QuickThrowOnFailure
+
+    [<Test>]
+    let ``Specific planeMapInverses`` () =
+        let sphere = Sphere.planeMapInverse 1.0 (Point.make 0.0 0.0 0.0)
+        sphere (Point.make 1.0 0.0 0.0)
+        |> shouldEqual (0.5, 0.5)
+        sphere (Point.make -1.0 0.0 0.0)
+        |> shouldEqual (0.0, 0.5)
+        sphere (Point.make 0.0 1.0 0.0)
+        |> shouldEqual (0.5, 1.0)
+        sphere (Point.make 0.0 -1.0 0.0)
+        |> shouldEqual (0.5, 0.0)
+        sphere (Point.make 0.0 0.0 1.0)
+        |> shouldEqual (0.25, 0.5)
+        sphere (Point.make 0.0 0.0 -1.0)
+        |> shouldEqual (0.75, 0.5)
+
+    [<Test>]
+    let ``Specific planeMaps`` () =
+        let sphere = Sphere.planeMap 1.0 (Point.make 0.0 0.0 0.0)
+        sphere 0.5 0.5
+        |> Point.equal (Point.make 1.0 0.0 0.0)
+        |> shouldEqual true
+        sphere 0.0 0.5
+        |> Point.equal (Point.make -1.0 0.0 0.0)
+        |> shouldEqual true
+        sphere 0.5 1.0
+        |> Point.equal (Point.make 0.0 1.0 0.0)
+        |> shouldEqual true
+        sphere 0.5 0.0
+        |> Point.equal (Point.make 0.0 -1.0 0.0)
+        |> shouldEqual true
+        sphere 0.25 0.5
+        |> Point.equal (Point.make 0.0 0.0 1.0)
+        |> shouldEqual true
+        sphere 0.75 0.5
+        |> Point.equal (Point.make 0.0 0.0 -1.0)
+        |> shouldEqual true

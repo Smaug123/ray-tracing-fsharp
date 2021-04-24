@@ -1,6 +1,7 @@
-namespace RayTracing
+namespace RayTracing.App
 
 open System
+open RayTracing
 
 type SampleImages =
     | Gradient
@@ -12,6 +13,8 @@ type SampleImages =
     | TotalRefraction
     | GlassSphere
     | MovedCamera
+    | TexturedSphere
+    | Earth
 
     static member Parse (s : string) =
         match s with
@@ -24,6 +27,8 @@ type SampleImages =
         | "moved-camera" -> SampleImages.MovedCamera
         | "glass" -> SampleImages.GlassSphere
         | "random-spheres" -> SampleImages.RandomSpheres
+        | "textured-sphere" -> SampleImages.TexturedSphere
+        | "earth" -> SampleImages.Earth
         | s -> failwithf "Unrecognised arg: %s" s
 
 [<RequireQualifiedAccess>]
@@ -167,6 +172,34 @@ module SampleImages =
         let camera =
             Camera.makeBasic 50 1.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
         let pixels = 200
+
+        [|
+            // Floor
+            Hittable.UnboundedSphere (Sphere.make (SphereStyle.LambertReflection (0.5<albedo>, Texture.Colour { Red = 204uy ; Green = 204uy ; Blue = 0uy }, random1)) (Point.make 0.0 -100.5 1.0) 100.0)
+
+            // Right sphere
+            Hittable.Sphere
+                (Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Texture.Colour { Red = 100uy ; Green = 150uy ; Blue = 200uy })) (Point.make 1.0 0.0 1.0) 0.5)
+            // Middle sphere
+            Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, Texture.Colour { Red = 25uy ; Green = 50uy ; Blue = 120uy }, random2)) (Point.make 0.0 0.0 1.0) 0.5)
+            // Left sphere
+            Hittable.Sphere (Sphere.make (SphereStyle.Glass (0.9<albedo>, Texture.Colour Colour.White, 1.5<ior>, random3)) (Point.make -1.0 0.0 1.0) 0.5)
+
+            // Light around us
+            Hittable.UnboundedSphere (Sphere.make (SphereStyle.LightSource (Texture.Colour { Red = 200uy ; Green = 200uy ; Blue = 200uy })) (Point.make 0.0 0.0 0.0) 200.0)
+        |]
+        |> Scene.make
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
+
+    let texturedSphere (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
+        let random1 = Random () |> FloatProducer
+        let random2 = Random () |> FloatProducer
+        let random3 = Random () |> FloatProducer
+        let aspectRatio = 16.0 / 9.0
+        let origin = Point.make 0.0 0.0 0.0
+        let camera =
+            Camera.makeBasic 50 1.0 aspectRatio origin (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
+        let pixels = 200
         let texture =
             let even =
                 ParameterisedTexture.Arbitrary (fun x y -> Texture.Colour { Red = byte (float x * 255.0) ; Green = 0uy ; Blue = byte (y * 255.0) })
@@ -289,6 +322,25 @@ module SampleImages =
         |> Scene.make
         |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
 
+    let earth (progressIncrement : float<progress> -> unit) (log : string -> unit) : float<progress> * Image =
+        let aspectRatio = 16.0 / 9.0
+        let origin = Point.make 13.0 2.0 -3.0
+        let camera =
+            Camera.makeBasic 50 12.0 aspectRatio origin (Point.differenceToThenFrom (Point.make 0.0 0.0 0.0) origin |> Vector.unitise |> Option.get) (Vector.make 0.0 1.0 0.0)
+        let pixels = 400
+        let texture = ParameterisedTexture.ofImage (LoadImage.fromResource "earthmap.jpg")
+        let random1 = Random () |> FloatProducer
+
+        [|
+            // Earth
+            Hittable.Sphere (Sphere.make (SphereStyle.LambertReflection (1.0<albedo>, ParameterisedTexture.toTexture (Sphere.planeMapInverse 1.0 (Point.make 0.0 0.0 0.0)) texture, random1)) (Point.make 0.0 0.0 0.0) 1.0)
+
+            // Light around us
+            Hittable.UnboundedSphere (Sphere.make (SphereStyle.LightSource (Texture.Colour { Red = 130uy ; Green = 130uy ; Blue = 200uy })) (Point.make 0.0 0.0 0.0) 200.0)
+        |]
+        |> Scene.make
+        |> Scene.render progressIncrement log (aspectRatio * (float pixels) |> int) pixels camera
+
     let get (s : SampleImages) : (float<progress> -> unit) -> (string -> unit) -> float<progress> * Image =
         match s with
         | Gradient -> gradient
@@ -300,3 +352,5 @@ module SampleImages =
         | GlassSphere -> glassSphere
         | MovedCamera -> movedCamera
         | RandomSpheres -> randomSpheres
+        | TexturedSphere -> texturedSphere
+        | Earth -> earth

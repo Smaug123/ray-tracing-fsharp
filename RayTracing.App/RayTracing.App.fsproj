@@ -6,8 +6,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="LoadImage.fs" />
         <Compile Include="SampleImages.fs" />
         <Compile Include="Program.fs" />
+        <EmbeddedResource Include="earthmap.jpg" />
     </ItemGroup>
 
     <ItemGroup>

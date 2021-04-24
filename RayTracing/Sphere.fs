@@ -52,18 +52,18 @@ type Orientation =
 module Sphere =
 
     /// Parameterisation of a sphere of radius 1 centred on 0,0,0 by points in the box [0, 1] x [0, 1]
-    let planeMap (radius : float) (centre : Point) (theta : float) (phi : float) : Point =
+    let planeMap (radius : float) (centre : Point) (phi : float) (theta : float) : Point =
         let theta = theta * System.Math.PI
         let phi = phi * System.Math.PI * 2.0 - System.Math.PI
-        Point.make (radius * sin theta * cos phi) (radius * sin theta * sin phi) (radius * cos theta)
+        Point.make (radius * cos phi * sin theta) (-radius * cos theta) (-radius * sin phi * sin theta)
         |> Point.sum centre
 
-    /// Give back the theta and phi (scaled to 0..1 each) that result in this point.
+    /// Give back the phi and theta (scaled to 0..1 each) that result in this point.
     let planeMapInverse (radius : float) (centre : Point) (p : Point) : struct(float * float) =
         let (Vector(x, y, z)) = Point.differenceToThenFrom p centre |> Vector.scale (1.0 / radius)
-        let theta = acos z
-        let phi = atan2 y x
-        struct(theta / System.Math.PI, ((phi + System.Math.PI) / (2.0 * System.Math.PI)))
+        let theta = acos (-y)
+        let phi = atan2 (-z) x + System.Math.PI
+        struct((phi / (2.0 * System.Math.PI)), theta / System.Math.PI)
 
     /// A ray hits the sphere with centre `centre` at point `p`.
     /// This function gives the outward-pointing normal.

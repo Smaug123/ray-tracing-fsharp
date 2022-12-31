@@ -15,6 +15,7 @@ module TestPlane =
             let dotVectors = UnitVector.dot (Ray.vector v1) (Ray.vector v2)
             let v1Length = UnitVector.dot (Ray.vector v1) (Ray.vector v1)
             let v2Length = UnitVector.dot (Ray.vector v2) (Ray.vector v2)
+
             Float.equal dotVectors 0.0
             && Float.equal v1Length 1.0
             && Float.equal v2Length 1.0

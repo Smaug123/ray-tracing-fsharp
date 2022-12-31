@@ -12,8 +12,7 @@ module TestRayTracing =
     let ``Wikipedia example of PPM output`` () =
         let fs = MockFileSystem ()
 
-        let expected =
-            TestUtils.getEmbeddedResource "PpmOutputExample.txt"
+        let expected = TestUtils.getEmbeddedResource "PpmOutputExample.txt"
 
         let image =
             [|
@@ -24,11 +23,12 @@ module TestRayTracing =
                 |]
                 [|
                     async {
-                        return {
-                            Red = 255uy
-                            Blue = 0uy
-                            Green = 255uy
-                        }
+                        return
+                            {
+                                Red = 255uy
+                                Blue = 0uy
+                                Green = 255uy
+                            }
                     }
                     async { return Colour.White }
                     async { return Colour.Black }
@@ -36,9 +36,7 @@ module TestRayTracing =
             |]
             |> Image.make 2 3
 
-        let outputFile =
-            fs.Path.GetTempFileName ()
-            |> fs.FileInfo.FromFileName
+        let outputFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
 
         let tempOutput, await = ImageOutput.toPpm ignore image fs
 
@@ -51,5 +49,4 @@ module TestRayTracing =
         }
         |> Async.RunSynchronously
 
-        fs.File.ReadAllText outputFile.FullName
-        |> shouldEqual expected
+        fs.File.ReadAllText outputFile.FullName |> shouldEqual expected

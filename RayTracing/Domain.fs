@@ -8,7 +8,7 @@ type progress
 type Image =
     private
         {
-            Rows : Pixel Async [] seq
+            Rows : Pixel Async[] seq
             RowCount : int
             ColCount : int
         }
@@ -19,21 +19,30 @@ module Image =
 
     let colCount i = i.ColCount
 
-    let render (i : Image) : (Pixel * Async<unit>) [] seq =
+    let render (i : Image) : (Pixel * Async<unit>)[] seq =
         i.Rows
         |> Seq.map (fun imageRow ->
             if imageRow.Length <> i.ColCount then
-                failwithf "Thought the image had %i columns, got a pixel array with %i columns" i.ColCount imageRow.Length
+                failwithf
+                    "Thought the image had %i columns, got a pixel array with %i columns"
+                    i.ColCount
+                    imageRow.Length
+
             let outputRow = Array.zeroCreate<Pixel * Async<unit>> i.ColCount
+
             let doIt =
                 imageRow
-                |> Array.mapi (fun i p -> async {
-                    let! pixel = p
-                    let _, a = outputRow.[i]
-                    outputRow.[i] <- pixel, a
-                })
-            for k in 0..i.ColCount - 1 do
+                |> Array.mapi (fun i p ->
+                    async {
+                        let! pixel = p
+                        let _, a = outputRow.[i]
+                        outputRow.[i] <- pixel, a
+                    }
+                )
+
+            for k in 0 .. i.ColCount - 1 do
                 outputRow.[k] <- Unchecked.defaultof<_>, doIt.[k]
+
             outputRow
         )
 

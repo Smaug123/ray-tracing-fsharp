@@ -24,15 +24,8 @@ module Hittable =
 
     /// Returns the distance we must walk along this ray before we first hit an object, the
     /// colour the resulting light ray is after the interaction, and the new ray.
-    let hits
-        (ray : Ray)
-        (h : Hittable)
-        : float voption
-        =
+    let hits (ray : Ray) (h : Hittable) : float voption =
         match h with
         | UnboundedSphere s
-        | Sphere s ->
-            Sphere.firstIntersection s ray
-        | InfinitePlane plane ->
-            InfinitePlane.intersection plane ray
-
+        | Sphere s -> Sphere.firstIntersection s ray
+        | InfinitePlane plane -> InfinitePlane.intersection plane ray

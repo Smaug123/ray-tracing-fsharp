@@ -26,36 +26,45 @@ type ParameterisedTexture =
 module ParameterisedTexture =
 
     let ofImage (img : System.Drawing.Bitmap) : ParameterisedTexture =
-        Array.init img.Height (fun y ->
-            let y = img.Height - y - 1
-            Array.init img.Width (fun x ->
-                let p = img.GetPixel (x, y)
-                { Red = p.R ; Green = p.G ; Blue = p.B }
+        Array.init
+            img.Height
+            (fun y ->
+                let y = img.Height - y - 1
+
+                Array.init
+                    img.Width
+                    (fun x ->
+                        let p = img.GetPixel (x, y)
+
+                        {
+                            Red = p.R
+                            Green = p.G
+                            Blue = p.B
+                        }
+                    )
             )
-        )
         |> ParameterisedTexture.Image
 
-    let rec colourAt (interpret : Point -> struct(float * float)) (t : ParameterisedTexture) (p : Point) : Pixel =
+    let rec colourAt (interpret : Point -> struct (float * float)) (t : ParameterisedTexture) (p : Point) : Pixel =
         match t with
         | ParameterisedTexture.Colour p -> p
         | ParameterisedTexture.Arbitrary f ->
-            let struct(x, y) = interpret p
+            let struct (x, y) = interpret p
             Texture.colourAt p (f x y)
         | ParameterisedTexture.Checkered (even, odd, gridSize) ->
-            let struct(x, y) = interpret p
+            let struct (x, y) = interpret p
             let sine = sin (gridSize * x) * sin (gridSize * y)
+
             match Float.compare sine 0.0 with
             | Less -> colourAt interpret even p
             | _ -> colourAt interpret odd p
         | ParameterisedTexture.Image img ->
-            let struct(x, y) = interpret p
-            let x = int ((1.0-x) * float (img.[0].Length - 1))
+            let struct (x, y) = interpret p
+            let x = int ((1.0 - x) * float (img.[0].Length - 1))
             let y = int (y * float (img.Length - 1))
             img.[y].[x]
 
-    let toTexture (interpret : Point -> struct(float * float)) (texture : ParameterisedTexture) : Texture =
+    let toTexture (interpret : Point -> struct (float * float)) (texture : ParameterisedTexture) : Texture =
         match texture with
         | ParameterisedTexture.Colour p -> Texture.Colour p
-        | _ ->
-            colourAt interpret texture
-            |> Texture.Arbitrary
+        | _ -> colourAt interpret texture |> Texture.Arbitrary

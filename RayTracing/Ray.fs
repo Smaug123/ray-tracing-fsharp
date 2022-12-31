@@ -41,10 +41,12 @@ module Ray =
         | Point (p1, p2, p3), Point (o1, o2, o3), UnitVector (Vector (r1, r2, r3)) ->
             let t = (p1 - o1) / r1
             let t2 = (p2 - o2) / r2
+
             if Float.equal t t2 then
                 let t3 = (p3 - o3) / r3
                 Float.equal t t3
-            else false
+            else
+                false
 
     let inline vector r = r.Vector
     let inline origin r = r.Origin
@@ -54,6 +56,5 @@ module Ray =
             Origin = r.Origin
             Vector =
                 let (UnitVector v) = r.Vector
-                Vector.scale -1.0 v
-                |> UnitVector
+                Vector.scale -1.0 v |> UnitVector
         }

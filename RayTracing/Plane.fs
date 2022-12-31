@@ -43,9 +43,9 @@ module Plane =
     let inline makeNormalTo' (point : Point) (UnitVector v) = makeNormalTo point v
 
     let orthonormalise (plane : Plane) : OrthonormalPlane option =
-        let coeff = UnitVector.dot plane.V1 plane.V2
+        let coefficient = UnitVector.dot plane.V1 plane.V2
         let vec2 =
-            UnitVector.difference' plane.V2 (UnitVector.scale coeff plane.V1)
+            UnitVector.difference' plane.V2 (UnitVector.scale coefficient plane.V1)
             |> Vector.unitise
         match vec2 with
         | None -> None

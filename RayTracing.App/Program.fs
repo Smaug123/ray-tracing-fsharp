@@ -9,7 +9,7 @@ module Program =
 
     type ProgressTask with
 
-        member this.Increment (prog : float<progress>) = this.Increment (prog / 1.0<progress>)
+        member this.Increment (progress : float<progress>) = this.Increment (progress / 1.0<progress>)
 
     let go (sample : SampleImages) (pngOutput : IFileInfo) (ctx : ProgressContext) =
         let renderTask = ctx.AddTask "[green]Generating image[/]"
@@ -62,7 +62,7 @@ module Program =
                 SampleImages.Parse name, fs.FileInfo.FromFileName output
             | _ -> failwithf "Expected two args 'sample name' 'output file', got %+A"  argv
 
-        let prog =
+        let progress =
             AnsiConsole
                 .Progress()
                 .Columns (
@@ -73,8 +73,8 @@ module Program =
                     SpinnerColumn ()
                 )
 
-        prog.HideCompleted <- false
-        prog.AutoClear <- false
+        progress.HideCompleted <- false
+        progress.AutoClear <- false
 
-        prog.Start (go sample output)
+        progress.Start (go sample output)
         0

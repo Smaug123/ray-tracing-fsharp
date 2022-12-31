@@ -25,7 +25,7 @@ module BoundingBox =
     let inverseDirections (ray : Ray) =
         struct(1.0 / (Ray.vector ray |> UnitVector.coordinate 0), 1.0 / (Ray.vector ray |> UnitVector.coordinate 1), 1.0 / (Ray.vector ray |> UnitVector.coordinate 2))
 
-    let hits (struct(invX, invY, invZ)) { Ray.Origin = Point (x, y, z) ; Vector = UnitVector (Vector (dx, dy, dz))} (box : BoundingBox) : bool =
+    let hits (struct(invX, invY, invZ)) { Ray.Origin = Point (x, y, z) ; Vector = _ } (box : BoundingBox) : bool =
         // The line is (x, y, z) + t (dx, dy, dz)
         // The line goes through the cuboid iff it passes through the interval in each component:
         //   there is t such that boxMin.X <= x + t dx <= boxMax.X,

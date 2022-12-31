@@ -36,7 +36,7 @@ type FloatProducer (rand : Random) =
     let mutable z = uint (rand.Next ())
     let mutable w = uint (rand.Next ())
 
-    member __.Get () =
+    member _.Get () =
         Monitor.Enter locker
         let w =
             try
@@ -45,7 +45,7 @@ type FloatProducer (rand : Random) =
                 Monitor.Exit locker
         FloatProducer.toDouble (FloatProducer.toInt w)
 
-    member __.GetTwo () : struct(float * float) =
+    member _.GetTwo () : struct(float * float) =
         Monitor.Enter locker
         let struct(w1, w2) =
             try

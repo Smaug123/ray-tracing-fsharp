@@ -13,7 +13,10 @@ module TestSphere =
     let ``Point at distance r from centre lies on sphere`` () =
         let property (centre : Point, radius : float, point : Point) : bool =
             let radius = abs radius
-            let sphere = Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Texture.Colour Colour.White)) centre radius
+
+            let sphere =
+                Sphere.make (SphereStyle.PureReflection (1.0<albedo>, Texture.Colour Colour.White)) centre radius
+
             Sphere.liesOn point sphere
 
 
@@ -21,31 +24,27 @@ module TestSphere =
             gen {
                 let! centre = TestUtils.pointGen
                 let! radius = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
-                let! theta =
-                    Arb.generate<NormalFloat>
-                    |> Gen.map NormalFloat.op_Explicit
-                let! phi =
-                    Arb.generate<NormalFloat>
-                    |> Gen.map NormalFloat.op_Explicit
+                let! theta = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
+                let! phi = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
 
                 let surfacePoint =
-                    Point.make
-                        (radius * cos phi * sin theta)
-                        (radius * sin phi * sin theta)
-                        (radius * cos theta)
+                    Point.make (radius * cos phi * sin theta) (radius * sin phi * sin theta) (radius * cos theta)
                     |> fun p -> Point.sum centre p
+
                 return centre, radius, surfacePoint
             }
 
-        property
-        |> Prop.forAll (Arb.fromGen gen)
-        |> Check.QuickThrowOnFailure
+        property |> Prop.forAll (Arb.fromGen gen) |> Check.QuickThrowOnFailure
 
     [<Test>]
     let ``Glass sphere perfectly reflects against the edge`` () =
         let rand = Random () |> FloatProducer
-        let ray = Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+
+        let ray =
+            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+
         let strikePoint = Point.make 0.0 0.0 1.0
+
         let destination =
             Sphere.reflection
                 (SphereStyle.Glass (1.0<albedo>, Texture.Colour Colour.Green, 1.5<ior>, rand))
@@ -53,22 +52,30 @@ module TestSphere =
                 1.0
                 1.0
                 false
-                { LightRay.Ray = ray ; Colour = Colour.White }
+                {
+                    LightRay.Ray = ray
+                    Colour = Colour.White
+                }
                 strikePoint
 
         match destination with
         | Continues onward ->
             onward.Colour |> shouldEqual Colour.Green
             Point.equal (Ray.origin onward.Ray) strikePoint |> shouldEqual true
-            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0) |> shouldEqual true
-        | Absorbs colour ->
-            failwithf "Absorbed: %+A" colour
+
+            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
+            |> shouldEqual true
+        | Absorbs colour -> failwithf "Absorbed: %+A" colour
 
     [<Test>]
     let ``Glass sphere perfectly refracts through the middle`` () =
         let rand = Random () |> FloatProducer
-        let ray = Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+
+        let ray =
+            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+
         let strikePoint = Point.make 0.0 0.0 1.0
+
         let destination =
             Sphere.reflection
                 (SphereStyle.Glass (1.0<albedo>, Texture.Colour Colour.Green, 1.5<ior>, rand))
@@ -76,22 +83,30 @@ module TestSphere =
                 1.0
                 1.0
                 false
-                { LightRay.Ray = ray ; Colour = Colour.White }
+                {
+                    LightRay.Ray = ray
+                    Colour = Colour.White
+                }
                 strikePoint
 
         match destination with
         | Continues onward ->
             onward.Colour |> shouldEqual Colour.Green
             Point.equal (Ray.origin onward.Ray) strikePoint |> shouldEqual true
-            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0) |> shouldEqual true
-        | Absorbs colour ->
-            failwithf "Absorbed: %+A" colour
+
+            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
+            |> shouldEqual true
+        | Absorbs colour -> failwithf "Absorbed: %+A" colour
 
     [<Test>]
     let ``Dielectric sphere refracts when incoming ray `` () =
         let rand = Random () |> FloatProducer
-        let ray = Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+
+        let ray =
+            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+
         let strikePoint = Point.make 0.0 0.0 1.0
+
         let destination =
             Sphere.reflection
                 (SphereStyle.Dielectric (1.0<albedo>, Texture.Colour Colour.Green, 1.5<ior>, 1.0<prob>, rand))
@@ -99,31 +114,47 @@ module TestSphere =
                 1.0
                 1.0
                 false
-                { LightRay.Ray = ray ; Colour = Colour.White }
+                {
+                    LightRay.Ray = ray
+                    Colour = Colour.White
+                }
                 strikePoint
 
         match destination with
         | Continues onward ->
             onward.Colour |> shouldEqual Colour.Green
             Point.equal (Ray.origin onward.Ray) strikePoint |> shouldEqual true
-            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0) |> shouldEqual true
-        | Absorbs colour ->
-            failwithf "Absorbed: %+A" colour
+
+            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
+            |> shouldEqual true
+        | Absorbs colour -> failwithf "Absorbed: %+A" colour
 
     [<Test>]
     let ``Test planeMap`` () =
         // theta required to be in 0,1
         // phi required to be in 0,1
-        let property (((oX : NormalFloat, oY : NormalFloat, oZ : NormalFloat), (radius : NormalFloat)), (theta : float), (phi : float)) : bool =
+        let property
+            (
+                ((oX : NormalFloat, oY : NormalFloat, oZ : NormalFloat), (radius : NormalFloat)),
+                (theta : float),
+                (phi : float)
+            )
+            : bool
+            =
             let centre = Point.make oX.Get oY.Get oZ.Get
             let radius = abs radius.Get
             let point = Sphere.planeMap radius centre theta phi
-            let struct(remainingTheta, remainingPhi) = Sphere.planeMapInverse radius centre point
+
+            let struct (remainingTheta, remainingPhi) =
+                Sphere.planeMapInverse radius centre point
+
             let result = Float.equal theta remainingTheta && Float.equal phi remainingPhi
             result
 
         let boundedFloat upperBound =
-            Arb.generate<NormalFloat> |> Gen.map (fun i -> abs i.Get) |> Gen.filter (fun i -> i <= upperBound)
+            Arb.generate<NormalFloat>
+            |> Gen.map (fun i -> abs i.Get)
+            |> Gen.filter (fun i -> i <= upperBound)
 
         let arb =
             gen {
@@ -137,44 +168,24 @@ module TestSphere =
             }
             |> Arb.fromGen
 
-        property
-        |> Prop.forAll arb
-        |> Check.QuickThrowOnFailure
+        property |> Prop.forAll arb |> Check.QuickThrowOnFailure
 
     [<Test>]
     let ``Specific planeMapInverses`` () =
         let sphere = Sphere.planeMapInverse 1.0 (Point.make 0.0 0.0 0.0)
-        sphere (Point.make 1.0 0.0 0.0)
-        |> shouldEqual (0.5, 0.5)
-        sphere (Point.make -1.0 0.0 0.0)
-        |> shouldEqual (0.0, 0.5)
-        sphere (Point.make 0.0 1.0 0.0)
-        |> shouldEqual (0.5, 1.0)
-        sphere (Point.make 0.0 -1.0 0.0)
-        |> shouldEqual (0.5, 0.0)
-        sphere (Point.make 0.0 0.0 1.0)
-        |> shouldEqual (0.25, 0.5)
-        sphere (Point.make 0.0 0.0 -1.0)
-        |> shouldEqual (0.75, 0.5)
+        sphere (Point.make 1.0 0.0 0.0) |> shouldEqual (0.5, 0.5)
+        sphere (Point.make -1.0 0.0 0.0) |> shouldEqual (0.0, 0.5)
+        sphere (Point.make 0.0 1.0 0.0) |> shouldEqual (0.5, 1.0)
+        sphere (Point.make 0.0 -1.0 0.0) |> shouldEqual (0.5, 0.0)
+        sphere (Point.make 0.0 0.0 1.0) |> shouldEqual (0.25, 0.5)
+        sphere (Point.make 0.0 0.0 -1.0) |> shouldEqual (0.75, 0.5)
 
     [<Test>]
     let ``Specific planeMaps`` () =
         let sphere = Sphere.planeMap 1.0 (Point.make 0.0 0.0 0.0)
-        sphere 0.5 0.5
-        |> Point.equal (Point.make 1.0 0.0 0.0)
-        |> shouldEqual true
-        sphere 0.0 0.5
-        |> Point.equal (Point.make -1.0 0.0 0.0)
-        |> shouldEqual true
-        sphere 0.5 1.0
-        |> Point.equal (Point.make 0.0 1.0 0.0)
-        |> shouldEqual true
-        sphere 0.5 0.0
-        |> Point.equal (Point.make 0.0 -1.0 0.0)
-        |> shouldEqual true
-        sphere 0.25 0.5
-        |> Point.equal (Point.make 0.0 0.0 1.0)
-        |> shouldEqual true
-        sphere 0.75 0.5
-        |> Point.equal (Point.make 0.0 0.0 -1.0)
-        |> shouldEqual true
+        sphere 0.5 0.5 |> Point.equal (Point.make 1.0 0.0 0.0) |> shouldEqual true
+        sphere 0.0 0.5 |> Point.equal (Point.make -1.0 0.0 0.0) |> shouldEqual true
+        sphere 0.5 1.0 |> Point.equal (Point.make 0.0 1.0 0.0) |> shouldEqual true
+        sphere 0.5 0.0 |> Point.equal (Point.make 0.0 -1.0 0.0) |> shouldEqual true
+        sphere 0.25 0.5 |> Point.equal (Point.make 0.0 0.0 1.0) |> shouldEqual true
+        sphere 0.75 0.5 |> Point.equal (Point.make 0.0 0.0 -1.0) |> shouldEqual true

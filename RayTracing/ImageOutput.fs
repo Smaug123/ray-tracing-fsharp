@@ -52,41 +52,71 @@ module ImageOutput =
         let mutable answer = 0
         let mutable keepGoing = true
         let mutable toRet = ValueNone
+
         while keepGoing do
             let i = s.ReadByte ()
-            if i < 0 then keepGoing <- false else
-            // '0' is 48
-            // '9' is 57
-            if 48 <= i && i <= 57 then
+
+            if i < 0 then
+                keepGoing <- false
+            else if
+                // '0' is 48
+                // '9' is 57
+                48 <= i && i <= 57
+            then
                 answer <- (10 * answer + (i - 48))
             else
                 toRet <- ValueSome answer
                 keepGoing <- false
+
         toRet
 
-    let readPixelMap (incrementProgress : float<progress> -> unit) (progress : IFileInfo) (numRows : int) (numCols : int) : Async<Pixel ValueOption [] []> =
-        let rec go (dict : _ [] []) (reader : Stream) =
+    let readPixelMap
+        (incrementProgress : float<progress> -> unit)
+        (progress : IFileInfo)
+        (numRows : int)
+        (numCols : int)
+        : Async<Pixel ValueOption[][]>
+        =
+        let rec go (dict : _[][]) (reader : Stream) =
             let row = consumeAsciiInteger reader
+
             match row with
             | ValueNone -> dict
             | ValueSome row ->
 
             let col = consumeAsciiInteger reader
+
             match col with
             | ValueNone -> dict
             | ValueSome col ->
 
             let r = reader.ReadByte ()
-            if r < 0 then dict else
-            let g = reader.ReadByte ()
-            if g = -1 then dict else
-            let b = reader.ReadByte ()
-            if b = -1 then dict else
 
-            incrementProgress 1.0<progress>
-            dict.[row].[col] <- ValueSome { Red = byte r ; Green = byte g ; Blue = byte b }
+            if r < 0 then
+                dict
+            else
+                let g = reader.ReadByte ()
 
-            go dict reader
+                if g = -1 then
+                    dict
+                else
+                    let b = reader.ReadByte ()
+
+                    if b = -1 then
+                        dict
+                    else
+
+                        incrementProgress 1.0<progress>
+
+                        dict.[row].[col] <-
+                            ValueSome
+                                {
+                                    Red = byte r
+                                    Green = byte g
+                                    Blue = byte b
+                                }
+
+                        go dict reader
 
         async {
             use stream = progress.FileSystem.File.OpenRead progress.FullName
@@ -95,13 +125,21 @@ module ImageOutput =
             return result
         }
 
-    let resume (incrementProgress : float<progress> -> unit) (soFar : IReadOnlyDictionary<int * int, Pixel>) (image : Image) (fs : IFileSystem) : IFileInfo * Async<unit> =
-        let rec go (writer : Stream) (rowNum : int) (rowEnum : IEnumerator<Pixel Async []>) =
+    let resume
+        (incrementProgress : float<progress> -> unit)
+        (soFar : IReadOnlyDictionary<int * int, Pixel>)
+        (image : Image)
+        (fs : IFileSystem)
+        : IFileInfo * Async<unit>
+        =
+        let rec go (writer : Stream) (rowNum : int) (rowEnum : IEnumerator<Pixel Async[]>) =
             async {
                 if not (rowEnum.MoveNext ()) then
                     return ()
                 else
+
                 let row = rowEnum.Current
+
                 do!
                     row
                     |> Array.mapi (fun colNum pixel ->
@@ -110,14 +148,19 @@ module ImageOutput =
                                 match soFar.TryGetValue ((rowNum, colNum)) with
                                 | false, _ -> pixel
                                 | true, v -> async { return v }
+
                             let toWrite = ASCIIEncoding.Default.GetBytes (sprintf "%i,%i" rowNum colNum)
-                            lock writer (fun () ->
-                                writer.Write (toWrite, 0, toWrite.Length)
-                                writer.WriteByte 10uy // '\n'
-                                writer.WriteByte pixel.Red
-                                writer.WriteByte pixel.Green
-                                writer.WriteByte pixel.Blue
-                            )
+
+                            lock
+                                writer
+                                (fun () ->
+                                    writer.Write (toWrite, 0, toWrite.Length)
+                                    writer.WriteByte 10uy // '\n'
+                                    writer.WriteByte pixel.Red
+                                    writer.WriteByte pixel.Green
+                                    writer.WriteByte pixel.Blue
+                                )
+
                             incrementProgress 1.0<progress>
                             return ()
                         }
@@ -128,10 +171,12 @@ module ImageOutput =
                     |> Async.Parallel
 #endif
                     |> Async.Ignore
+
                 return! go writer (rowNum + 1) rowEnum
             }
 
         let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
+
         tempFile,
         async {
             use outputStream = tempFile.OpenWrite ()
@@ -139,9 +184,16 @@ module ImageOutput =
             return! go outputStream 0 enumerator
         }
 
-    let writePpm (gammaCorrect : bool) (incrementProgress : float<progress> -> unit) (pixels : Pixel [] []) (output : IFileInfo) : Async<unit> =
+    let writePpm
+        (gammaCorrect : bool)
+        (incrementProgress : float<progress> -> unit)
+        (pixels : Pixel[][])
+        (output : IFileInfo)
+        : Async<unit>
+        =
         let maxRow = pixels.Length
         let maxCol = pixels.[0].Length
+
         async {
             use output = output.OpenWrite ()
             use writer = new StreamWriter (output)
@@ -151,7 +203,7 @@ module ImageOutput =
             writer.Write "255\n"
 
             let writeRow (row : int) =
-                for col in 0..pixels.[row].Length - 2 do
+                for col in 0 .. pixels.[row].Length - 2 do
                     let pixel = pixels.[row].[col]
                     writer.Write (PixelOutput.toPpm gammaCorrect pixel)
                     writer.Write " "
@@ -161,15 +213,15 @@ module ImageOutput =
                 writer.Write (PixelOutput.toPpm gammaCorrect pixel)
                 incrementProgress 1.0<progress>
 
-            for row in 0..pixels.Length - 2 do
+            for row in 0 .. pixels.Length - 2 do
                 writeRow row
                 writer.Write "\n"
+
             writeRow (pixels.Length - 1)
         }
 
-    let assertComplete (image : Pixel ValueOption [] []) : Pixel [] [] =
-        image
-        |> Array.map (Array.map ValueOption.get)
+    let assertComplete (image : Pixel ValueOption[][]) : Pixel[][] =
+        image |> Array.map (Array.map ValueOption.get)
 
     /// Write out this image to a temporary file, flushing intermediate work as quickly as possible.
     /// Await the async to know when the entire image is complete.
@@ -185,24 +237,34 @@ module ImageOutput =
 [<RequireQualifiedAccess>]
 module Png =
 
-    let write (gammaCorrect : bool) (incrementProgress : float<progress> -> unit) (pixels : Pixel [] []) (output : IFileInfo) : Async<unit> =
+    let write
+        (gammaCorrect : bool)
+        (incrementProgress : float<progress> -> unit)
+        (pixels : Pixel[][])
+        (output : IFileInfo)
+        : Async<unit>
+        =
         let maxRow = pixels.Length
         let maxCol = pixels.[0].Length
+
         async {
             use img = new System.Drawing.Bitmap (maxCol, maxRow)
 
             let writeRow (row : int) =
-                for col in 0..pixels.[row].Length - 2 do
+                for col in 0 .. pixels.[row].Length - 2 do
                     let colour = PixelOutput.toSystem gammaCorrect pixels.[row].[col]
                     img.SetPixel (col, row, colour)
                     incrementProgress 1.0<progress>
 
-                let colour = PixelOutput.toSystem gammaCorrect pixels.[row].[pixels.[row].Length - 1]
+                let colour =
+                    PixelOutput.toSystem gammaCorrect pixels.[row].[pixels.[row].Length - 1]
+
                 img.SetPixel (pixels.[row].Length - 1, row, colour)
                 incrementProgress 1.0<progress>
 
-            for row in 0..pixels.Length - 2 do
+            for row in 0 .. pixels.Length - 2 do
                 writeRow row
+
             writeRow (pixels.Length - 1)
 
             use fileStream = output.OpenWrite ()

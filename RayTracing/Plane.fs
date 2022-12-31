@@ -25,14 +25,9 @@ module Plane =
                 Vector.make 0.0 0.0 1.0
             else
                 Vector.make 1.0 1.0 ((-x - y) / z)
-        let v2 =
-            Vector.cross v v1
-            |> Vector.unitise
-            |> Option.get
-        let v1 =
-            v1
-            |> Vector.unitise
-            |> Option.get
+
+        let v2 = Vector.cross v v1 |> Vector.unitise |> Option.get
+        let v1 = v1 |> Vector.unitise |> Option.get
 
         {
             Point = point
@@ -44,9 +39,11 @@ module Plane =
 
     let orthonormalise (plane : Plane) : OrthonormalPlane option =
         let coefficient = UnitVector.dot plane.V1 plane.V2
+
         let vec2 =
             UnitVector.difference' plane.V2 (UnitVector.scale coefficient plane.V1)
             |> Vector.unitise
+
         match vec2 with
         | None -> None
         | Some v2 ->
@@ -69,7 +66,15 @@ module Plane =
         let viewUp = Vector.unitise viewUp |> Option.get
         let v1Component = UnitVector.dot plane.V1 viewUp
         let v2Component = UnitVector.dot plane.V2 viewUp
-        let v2 = Vector.sum (UnitVector.scale v1Component plane.V1) (UnitVector.scale v2Component plane.V2) |> Vector.unitise |> Option.get
-        let v1 = Vector.sum (UnitVector.scale v2Component plane.V1) (UnitVector.scale (-v1Component) plane.V2) |> Vector.unitise |> Option.get
-        Ray.make plane.Point v1,
-        Ray.make plane.Point v2
+
+        let v2 =
+            Vector.sum (UnitVector.scale v1Component plane.V1) (UnitVector.scale v2Component plane.V2)
+            |> Vector.unitise
+            |> Option.get
+
+        let v1 =
+            Vector.sum (UnitVector.scale v2Component plane.V1) (UnitVector.scale (-v1Component) plane.V2)
+            |> Vector.unitise
+            |> Option.get
+
+        Ray.make plane.Point v1, Ray.make plane.Point v2

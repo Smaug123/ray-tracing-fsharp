@@ -1,12 +1,12 @@
 namespace RayTracing.App
 
-open System.Drawing
 open System.Reflection
+open SkiaSharp
 
 [<RequireQualifiedAccess>]
 module LoadImage =
 
-    let fromResource (name : string) : Bitmap =
+    let fromResource (name : string) : SKBitmap =
         let assy = Assembly.GetExecutingAssembly ()
 
         use resource =
@@ -15,5 +15,4 @@ module LoadImage =
             |> Seq.head
             |> assy.GetManifestResourceStream
 
-        let b = new Bitmap (resource)
-        b
+        SKBitmap.Decode resource

@@ -107,11 +107,9 @@ module ImageOutput =
 
                         dict.[row].[col] <-
                             ValueSome
-                                {
-                                    Red = byte r
-                                    Green = byte g
-                                    Blue = byte b
-                                }
+                                { Red = byte r
+                                  Green = byte g
+                                  Blue = byte b }
 
                         go dict reader
 
@@ -129,57 +127,52 @@ module ImageOutput =
         (fs : IFileSystem)
         : IFileInfo * Async<unit>
         =
-        let rec go (writer : Stream) (rowNum : int) (rowEnum : IEnumerator<Pixel Async[]>) =
-            async {
-                if not (rowEnum.MoveNext ()) then
-                    return ()
-                else
-
-                let row = rowEnum.Current
-
-                do!
-                    row
-                    |> Array.mapi (fun colNum pixel ->
-                        async {
-                            let! pixel =
-                                match soFar.TryGetValue ((rowNum, colNum)) with
-                                | false, _ -> pixel
-                                | true, v -> async { return v }
-
-                            let toWrite = ASCIIEncoding.Default.GetBytes (sprintf "%i,%i" rowNum colNum)
-
-                            lock
-                                writer
-                                (fun () ->
-                                    writer.Write (toWrite, 0, toWrite.Length)
-                                    writer.WriteByte 10uy // '\n'
-                                    writer.WriteByte pixel.Red
-                                    writer.WriteByte pixel.Green
-                                    writer.WriteByte pixel.Blue
-                                )
-
-                            incrementProgress 1.0<progress>
-                            return ()
-                        }
-                    )
-#if DEBUG
-                    |> Async.Sequential
-#else
-                    |> Async.Parallel
-#endif
-                    |> Async.Ignore
-
-                return! go writer (rowNum + 1) rowEnum
-            }
-
         let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
 
         tempFile,
         async {
             use outputStream = tempFile.OpenWrite ()
             use enumerator = image.Rows.GetEnumerator ()
-            return! go outputStream 0 enumerator
+            let mutable rowNum = 0
+            while enumerator.MoveNext () do
+
+            let row = enumerator.Current
+
+            do!
+                row
+                |> Array.mapi (fun colNum pixel ->
+                    async {
+                        let! pixel =
+                            match soFar.TryGetValue ((rowNum, colNum)) with
+                            | false, _ -> pixel
+                            | true, v -> async { return v }
+
+                        let toWrite = ASCIIEncoding.Default.GetBytes (sprintf "%i,%i" rowNum colNum)
+
+                        lock
+                            outputStream
+                            (fun () ->
+                                outputStream.Write (toWrite, 0, toWrite.Length)
+                                outputStream.WriteByte 10uy // '\n'
+                                outputStream.WriteByte pixel.Red
+                                outputStream.WriteByte pixel.Green
+                                outputStream.WriteByte pixel.Blue
+                            )
+
+                        incrementProgress 1.0<progress>
+                        return ()
+                    }
+                )
+#if DEBUG
+                |> Async.Sequential
+#else
+                |> Async.Parallel
+#endif
+                |> Async.Ignore
+
+            rowNum <- rowNum + 1
         }
+
 
     let writePpm
         (gammaCorrect : bool)

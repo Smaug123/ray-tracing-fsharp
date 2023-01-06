@@ -107,9 +107,11 @@ module ImageOutput =
 
                         dict.[row].[col] <-
                             ValueSome
-                                { Red = byte r
-                                  Green = byte g
-                                  Blue = byte b }
+                                {
+                                    Red = byte r
+                                    Green = byte g
+                                    Blue = byte b
+                                }
 
                         go dict reader
 
@@ -251,8 +253,7 @@ module Png =
                     img.SetPixel (col, row, colour)
                     incrementProgress 1.0<progress>
 
-                let colour =
-                    PixelOutput.toSkia gammaCorrect pixels.[row].[pixels.[row].Length - 1]
+                let colour = PixelOutput.toSkia gammaCorrect pixels.[row].[pixels.[row].Length - 1]
 
                 img.SetPixel (pixels.[row].Length - 1, row, colour)
                 incrementProgress 1.0<progress>
@@ -263,7 +264,9 @@ module Png =
             writeRow (pixels.Length - 1)
 
             use fileStream = output.OpenWrite ()
+
             if not (img.Encode (fileStream, SKEncodedImageFormat.Png, 100)) then
                 return failwith "unable to encode image as PNG"
+
             return ()
         }

@@ -96,6 +96,7 @@ module Sphere =
         // But to model a glass shell (not a sphere), we allow negative radius, which contributes a flipping term.
         let mutable inside = false
         let mutable normal = normal centre strikePoint
+
         match
             Float.compare
                 (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingLight.Ray)))
@@ -111,6 +112,7 @@ module Sphere =
             if flipped then
                 inside <- true
                 normal <- Ray.make (Ray.origin normal) (UnitVector.flip (Ray.vector normal))
+
         let inside = inside
         let normal = normal
 

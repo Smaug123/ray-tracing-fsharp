@@ -1,5 +1,7 @@
 namespace RayTracing
 
+open SkiaSharp
+
 [<RequireQualifiedAccess>]
 type Texture =
     | Colour of Pixel
@@ -25,7 +27,7 @@ type ParameterisedTexture =
 [<RequireQualifiedAccess>]
 module ParameterisedTexture =
 
-    let ofImage (img : System.Drawing.Bitmap) : ParameterisedTexture =
+    let ofImage (img : SKBitmap) : ParameterisedTexture =
         Array.init
             img.Height
             (fun y ->
@@ -37,9 +39,9 @@ module ParameterisedTexture =
                         let p = img.GetPixel (x, y)
 
                         {
-                            Red = p.R
-                            Green = p.G
-                            Blue = p.B
+                            Red = p.Red
+                            Green = p.Green
+                            Blue = p.Blue
                         }
                     )
             )

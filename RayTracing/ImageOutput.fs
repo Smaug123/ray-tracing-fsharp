@@ -3,10 +3,10 @@
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
-open System.Drawing.Imaging
 open System.IO
 open System.IO.Abstractions
 open System.Text
+open SkiaSharp
 
 [<RequireQualifiedAccess>]
 module PixelOutput =
@@ -31,17 +31,14 @@ module PixelOutput =
             let blue = pixel.Blue
             sprintf "%i %i %i" red green blue
 
-    let toSystem (gammaCorrect : bool) (pixel : Pixel) : System.Drawing.Color =
+    let toSkia (gammaCorrect : bool) (pixel : Pixel) : SKColor =
         if gammaCorrect then
             let red = correct pixel.Red
             let green = correct pixel.Green
             let blue = correct pixel.Blue
-            Drawing.Color.FromArgb (255, int red, int green, int blue)
+            SKColor (red, green, blue, 255uy)
         else
-            let red = pixel.Red
-            let green = pixel.Green
-            let blue = pixel.Blue
-            Drawing.Color.FromArgb (255, int red, int green, int blue)
+            SKColor (pixel.Red, pixel.Green, pixel.Blue, 255uy)
 
 [<RequireQualifiedAccess>]
 module ImageOutput =
@@ -248,26 +245,28 @@ module Png =
         let maxCol = pixels.[0].Length
 
         async {
-            use img = new System.Drawing.Bitmap (maxCol, maxRow)
+            use img = new SKBitmap (maxCol, maxRow)
 
             let writeRow (row : int) =
                 for col in 0 .. pixels.[row].Length - 2 do
-                    let colour = PixelOutput.toSystem gammaCorrect pixels.[row].[col]
+                    let colour = PixelOutput.toSkia gammaCorrect pixels.[row].[col]
                     img.SetPixel (col, row, colour)
                     incrementProgress 1.0<progress>
 
-                let colour =
-                    PixelOutput.toSystem gammaCorrect pixels.[row].[pixels.[row].Length - 1]
+                let colour = PixelOutput.toSkia gammaCorrect pixels.[row].[pixels.[row].Length - 1]
 
                 img.SetPixel (pixels.[row].Length - 1, row, colour)
                 incrementProgress 1.0<progress>
 
-            for row in 0 .. pixels.Length - 2 do
+            for row = 0 to pixels.Length - 2 do
                 writeRow row
 
             writeRow (pixels.Length - 1)
 
             use fileStream = output.OpenWrite ()
-            img.Save (fileStream, ImageFormat.Png)
+
+            if not (img.Encode (fileStream, SKEncodedImageFormat.Png, 100)) then
+                return failwith "unable to encode image as PNG"
+
             return ()
         }

@@ -21,7 +21,7 @@ module TestBoundingBox =
                 (Point.make ((if negate then (fun x -> -x) else id) delta) 0.0 0.0)
                 (Vector.make (if negate then -1.0 else 1.0) 0.0 0.0
                  |> Vector.unitise
-                 |> Option.get)
+                 |> ValueOption.get)
 
         let property
             (x : NormalFloat)
@@ -50,7 +50,7 @@ module TestBoundingBox =
                 (Point.make 0.0 ((if negate then (fun x -> -x) else id) delta) 0.0)
                 (Vector.make 0.0 (if negate then -1.0 else 1.0) 0.0
                  |> Vector.unitise
-                 |> Option.get)
+                 |> ValueOption.get)
 
         let property
             (x : NormalFloat)
@@ -74,7 +74,7 @@ module TestBoundingBox =
     [<Test>]
     let ``Bounding box forward, ray going backward, case 1`` () =
         let ray =
-            Ray.make (Point.make 0.0 0.0 delta) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Ray.make (Point.make 0.0 0.0 delta) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
 
         let z1, z2 = sort (-abs 0.0) (-abs 0.0)
         let x1, x2 = sort 0.0 0.0
@@ -91,7 +91,7 @@ module TestBoundingBox =
                 (Point.make 0.0 0.0 ((if negate then (fun x -> -x) else id) delta))
                 (Vector.make 0.0 0.0 (if negate then -1.0 else 1.0)
                  |> Vector.unitise
-                 |> Option.get)
+                 |> ValueOption.get)
 
         let property
             (x : NormalFloat)
@@ -116,7 +116,7 @@ module TestBoundingBox =
     [<Test>]
     let ``Bounding box forward does intersect ray going forward`` () =
         let ray =
-            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
 
         let box = BoundingBox.make (Point.make -1.0 -1.0 -1.0) (Point.make 1.0 1.0 1.0)
 

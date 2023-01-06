@@ -8,15 +8,15 @@ type Ray =
 
 [<RequireQualifiedAccess>]
 module Ray =
-    let make' (origin : Point) (vector : Vector) : Ray option =
+    let make' (origin : Point) (vector : Vector) : Ray ValueOption =
         match Vector.unitise vector with
-        | None -> None
-        | Some v ->
+        | ValueNone -> ValueNone
+        | ValueSome v ->
             {
                 Origin = origin
                 Vector = v
             }
-            |> Some
+            |> ValueSome
 
     let make (origin : Point) (vector : UnitVector) : Ray =
         {

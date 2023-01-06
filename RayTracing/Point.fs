@@ -25,14 +25,14 @@ module Vector =
 
     let difference (Vector (a, b, c)) (Vector (x, y, z)) : Vector = Vector (a - x, b - y, c - z)
 
-    let unitise (vec : Vector) : UnitVector option =
+    let unitise (vec : Vector) : UnitVector ValueOption =
         let dot = dot vec vec
 
         if Float.equal dot 0.0 then
-            None
+            ValueNone
         else
             let factor = 1.0 / sqrt dot
-            scale factor vec |> UnitVector |> Some
+            scale factor vec |> UnitVector |> ValueSome
 
     let normSquared (vec : Vector) : float = dot vec vec
 
@@ -55,8 +55,8 @@ module UnitVector =
         Vector.make x y z
         |> Vector.unitise
         |> function
-            | None -> random floatProducer dimension
-            | Some result -> result
+            | ValueNone -> random floatProducer dimension
+            | ValueSome result -> result
 
     let inline dot (UnitVector a) (UnitVector b) = Vector.dot a b
     let inline dot' (UnitVector a) (b : Vector) = Vector.dot a b

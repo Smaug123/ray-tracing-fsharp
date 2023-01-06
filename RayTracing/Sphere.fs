@@ -76,7 +76,7 @@ module Sphere =
     /// A ray hits the sphere with centre `centre` at point `p`.
     /// This function gives the outward-pointing normal.
     let normal (centre : Point) (p : Point) : Ray =
-        Ray.make' p (Point.differenceToThenFrom p centre) |> Option.get
+        Ray.make' p (Point.differenceToThenFrom p centre) |> ValueOption.get
 
     let private liesOn' (centre : Point) (radius : float) (p : Point) : bool =
         let rSquared = radius * radius
@@ -92,38 +92,37 @@ module Sphere =
         (strikePoint : Point)
         : LightDestination
         =
-        let normal = normal centre strikePoint
-
         // If the incoming ray is on the sphere, then we have to be an internal ray, so the normal is flipped.
         // But to model a glass shell (not a sphere), we allow negative radius, which contributes a flipping term.
-        let inside, normal =
-            match
-                Float.compare
-                    (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingLight.Ray)))
-                    radiusSquared
-            with
-            | Equal
-            | Less ->
-                // Point is inside or on the sphere so we are coming from within
-                if flipped then
-                    false, normal
-                else
-                    true, Ray.make (Ray.origin normal) (UnitVector.flip (Ray.vector normal))
-            | Greater ->
-                if flipped then
-                    true, Ray.make (Ray.origin normal) (UnitVector.flip (Ray.vector normal))
-                else
-                    false, normal
+        let mutable inside = false
+        let mutable normal = normal centre strikePoint
+        match
+            Float.compare
+                (Vector.normSquared (Point.differenceToThenFrom centre (Ray.origin incomingLight.Ray)))
+                radiusSquared
+        with
+        | Equal
+        | Less ->
+            // Point is inside or on the sphere so we are coming from within
+            if not flipped then
+                inside <- true
+                normal <- Ray.make (Ray.origin normal) (UnitVector.flip (Ray.vector normal))
+        | Greater ->
+            if flipped then
+                inside <- true
+                normal <- Ray.make (Ray.origin normal) (UnitVector.flip (Ray.vector normal))
+        let inside = inside
+        let normal = normal
 
-        let fuzzedReflection (fuzz : (float<fuzz> * FloatProducer) option) =
+        let fuzzedReflection (fuzz : (float<fuzz> * FloatProducer) ValueOption) =
             let plane = Plane.makeSpannedBy normal incomingLight.Ray |> Plane.orthonormalise
 
             let outgoing =
                 match plane with
-                | None ->
+                | ValueNone ->
                     // Incoming ray is directly along the normal
                     Ray.flip incomingLight.Ray |> Ray.parallelTo strikePoint
-                | Some plane ->
+                | ValueSome plane ->
                     // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
                     // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
                     let normalComponent = -UnitVector.dot plane.V1 (Ray.vector incomingLight.Ray)
@@ -137,11 +136,11 @@ module Sphere =
                     Point.differenceToThenFrom dest strikePoint
                     |> Ray.make' strikePoint
                     // This is safe: it's actually a logic error for this to fail.
-                    |> Option.get
+                    |> ValueOption.get
 
             match fuzz with
-            | None -> outgoing
-            | Some (fuzz, rand) ->
+            | ValueNone -> outgoing
+            | ValueSome (fuzz, rand) ->
                 let mutable answer = Unchecked.defaultof<_>
 
                 while obj.ReferenceEquals (answer, null) do
@@ -153,8 +152,8 @@ module Sphere =
                         Point.differenceToThenFrom target strikePoint |> Ray.make' strikePoint
 
                     match exitPoint with
-                    | None -> ()
-                    | Some o -> answer <- o
+                    | ValueNone -> ()
+                    | ValueSome o -> answer <- o
 
                 answer
 
@@ -163,17 +162,17 @@ module Sphere =
             let plane = Plane.makeSpannedBy normal incomingLight.Ray |> Plane.orthonormalise
 
             match plane with
-            | None ->
+            | ValueNone ->
                 // Incoming ray was parallel to normal; pass straight through
                 Ray.make strikePoint (Ray.vector incomingLight.Ray)
-            | Some plane ->
+            | ValueSome plane ->
 
             let incomingSin = sqrt (1.0 - incomingCos * incomingCos)
             let outgoingSin = incomingSin / index
 
             if Float.compare outgoingSin 1.0 = Greater then
                 // override our decision to refract - from this angle, there's no way we could have refracted
-                fuzzedReflection None
+                fuzzedReflection ValueNone
 
             else
 
@@ -186,7 +185,7 @@ module Sphere =
             |> Ray.make' strikePoint
             // This is safe: it's a logic error for this to fail. It would imply both the
             // cos and the sin outgoing components were 0.
-            |> Option.get
+            |> ValueOption.get
 
         match style with
         | SphereStyle.LightSource texture ->
@@ -219,8 +218,8 @@ module Sphere =
                         Point.differenceToThenFrom target strikePoint |> Ray.make' strikePoint
 
                     match outputPoint with
-                    | Some o -> answer <- o
-                    | None -> ()
+                    | ValueSome o -> answer <- o
+                    | ValueNone -> ()
 
                 answer
 
@@ -245,7 +244,7 @@ module Sphere =
 
             Continues
                 {
-                    Ray = fuzzedReflection None
+                    Ray = fuzzedReflection ValueNone
                     Colour = darkened
                 }
 
@@ -258,7 +257,7 @@ module Sphere =
 
             Continues
                 {
-                    Ray = fuzzedReflection (Some (fuzz, random))
+                    Ray = fuzzedReflection (ValueSome (fuzz, random))
                     Colour = darkened
                 }
 
@@ -275,7 +274,7 @@ module Sphere =
                 // reflect!
                 Continues
                     {
-                        Ray = fuzzedReflection None
+                        Ray = fuzzedReflection ValueNone
                         Colour = newColour
                     }
             else
@@ -314,7 +313,7 @@ module Sphere =
                 // reflect!
                 Continues
                     {
-                        Ray = fuzzedReflection None
+                        Ray = fuzzedReflection ValueNone
                         Colour = newColour
                     }
             else
@@ -358,8 +357,8 @@ module Sphere =
 
         let intersectionPoint =
             match Float.compare discriminantOverFour 0.0 with
-            | Comparison.Equal -> Some (-b)
-            | Comparison.Less -> None
+            | Comparison.Equal -> ValueSome (-b)
+            | Comparison.Less -> ValueNone
             | Comparison.Greater ->
                 let intermediate = sqrt discriminantOverFour
                 let i1 = intermediate - b
@@ -372,16 +371,16 @@ module Sphere =
                     | Less -> i1
                     | Greater -> i2
                     | Equal -> i1
-                    |> Some
+                    |> ValueSome
                 elif i1Pos then
-                    Some i1
+                    ValueSome i1
                 elif i2Pos then
-                    Some i2
+                    ValueSome i2
                 else
-                    None
+                    ValueNone
 
         match intersectionPoint with
-        | None -> ValueNone
-        | Some i ->
+        | ValueNone -> ValueNone
+        | ValueSome i ->
             // Don't return anything that's behind us
             if Float.positive i then ValueSome i else ValueNone

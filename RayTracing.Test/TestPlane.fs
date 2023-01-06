@@ -10,7 +10,7 @@ module TestPlane =
     [<Test>]
     let ``Orthogonalise does make orthogonal vectors`` () =
         let property (p : Plane) : bool =
-            let orth = Plane.orthonormalise p |> Option.get
+            let orth = Plane.orthonormalise p |> ValueOption.get
             let v1, v2 = Plane.basis (Vector.make 0.0 1.0 0.0) orth
             let dotVectors = UnitVector.dot (Ray.vector v1) (Ray.vector v2)
             let v1Length = UnitVector.dot (Ray.vector v1) (Ray.vector v1)

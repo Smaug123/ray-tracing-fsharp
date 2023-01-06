@@ -10,7 +10,7 @@ type Ray =
 
 [<RequireQualifiedAccess>]
 module Ray =
-    val make' : Point -> Vector -> Ray option
+    val make' : Point -> Vector -> Ray ValueOption
     val make : Point -> UnitVector -> Ray
 
     val walkAlong : Ray -> float -> Point

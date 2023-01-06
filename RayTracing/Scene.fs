@@ -6,7 +6,7 @@ type Scene =
     private
         {
             UnboundedObjects : Hittable array
-            BoundingBoxes : BoundingBoxTree option
+            BoundingBoxes : BoundingBoxTree voption
         }
 
 [<RequireQualifiedAccess>]
@@ -16,9 +16,9 @@ module Scene =
         let bounded, unbounded =
             objects
             |> Array.map (fun h -> h, Hittable.boundingBox h)
-            |> Array.partition (snd >> Option.isSome)
+            |> Array.partition (snd >> ValueOption.isSome)
 
-        let bounded = bounded |> Array.map (fun (h, box) -> h, Option.get box)
+        let bounded = bounded |> Array.map (fun (h, box) -> h, ValueOption.get box)
         let unbounded = unbounded |> Array.map fst
         let tree = bounded |> BoundingBoxTree.make
 
@@ -59,14 +59,14 @@ module Scene =
             else
                 struct (bestFloat, bestObject, bestLength)
 
-    let hitObject (s : Scene) (ray : Ray) : (Hittable * Point) option =
+    let hitObject (s : Scene) (ray : Ray) : struct (Hittable * Point) ValueOption =
         let mutable best = Unchecked.defaultof<_>
         let mutable bestLength = nan
         let mutable bestFloat = infinity
 
         match s.BoundingBoxes with
-        | None -> ()
-        | Some boundingBoxes ->
+        | ValueNone -> ()
+        | ValueSome boundingBoxes ->
             let struct (f, o, l) =
                 bestCandidate (BoundingBox.inverseDirections ray) ray bestFloat best bestLength boundingBoxes
 
@@ -86,9 +86,9 @@ module Scene =
                     bestLength <- point
 
         if Double.IsNaN bestLength then
-            None
+            ValueNone
         else
-            Some (best, Ray.walkAlong ray bestLength)
+            ValueSome (struct (best, Ray.walkAlong ray bestLength))
 
     let internal traceRay (maxCount : int) (scene : Scene) (ray : LightRay) : Pixel =
         let rec go (bounces : int) (ray : LightRay) : Pixel =
@@ -102,10 +102,10 @@ module Scene =
             let thingsWeHit = hitObject scene ray.Ray
 
             match thingsWeHit with
-            | None ->
+            | ValueNone ->
                 // Ray goes off into the distance and is never heard from again
                 Colour.Black
-            | Some (object, strikePoint) ->
+            | ValueSome (object, strikePoint) ->
                 let outgoingRay = object.Reflection ray strikePoint
 
                 match outgoingRay with
@@ -122,9 +122,10 @@ module Scene =
         (camera : Camera)
         (maxWidthCoord : int)
         (maxHeightCoord : int)
-        row
-        col
-        stats
+        (row : int)
+        (col : int)
+        (stats : PixelStats)
+        : unit
         =
         let struct (rand1, rand2) = rand.GetTwo ()
 
@@ -140,7 +141,7 @@ module Scene =
 
         let ray =
             Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))
-            |> Option.get
+            |> ValueOption.get
 
         // Here we've hardcoded that the eye is emitting white light through a medium with refractance 1.
         let result =

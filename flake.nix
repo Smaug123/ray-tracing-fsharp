@@ -73,7 +73,7 @@
         devShells = let
         in {
           default = pkgs.mkShell {
-            buildInputs = [pkgs.dotnet-sdk_7 pkgs.git pkgs.alejandra pkgs.nodePackages.markdown-link-check pkgs.libgdiplus];
+            buildInputs = [pkgs.dotnet-sdk_7 pkgs.git pkgs.alejandra pkgs.nodePackages.markdown-link-check];
           };
         };
       }

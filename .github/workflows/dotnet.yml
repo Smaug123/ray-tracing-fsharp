@@ -58,7 +58,7 @@ jobs:
           extra_nix_config: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       - name: Run Alejandra
-        run: nix develop .#ci --command alejandra --check .
+        run: nix develop --command alejandra --check .
 
   shellcheck:
     name: Shellcheck
@@ -72,7 +72,7 @@ jobs:
           extra_nix_config: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       - name: Run ShellCheck
-        run: nix develop .#ci --command bash -c "find . -type f -name '*.sh' | xargs shellcheck"
+        run: nix develop --command bash -c "find . -type f -name '*.sh' | xargs shellcheck"
 
   linkcheck:
     name: Check links
@@ -85,7 +85,7 @@ jobs:
           extra_nix_config: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       - name: Run link checker
-        run: nix develop .#ci --command markdown-link-check README.md
+        run: nix develop --command markdown-link-check README.md
 
   all-required-checks-complete:
     needs: [check-dotnet-format, check-nix-format, build, shellcheck, linkcheck]

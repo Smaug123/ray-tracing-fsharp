@@ -358,8 +358,8 @@ module Sphere =
 
         let intersectionPoint =
             match Float.compare discriminantOverFour 0.0 with
-            | Comparison.Equal -> Some (-b)
-            | Comparison.Less -> None
+            | Comparison.Equal -> ValueSome (-b)
+            | Comparison.Less -> ValueNone
             | Comparison.Greater ->
                 let intermediate = sqrt discriminantOverFour
                 let i1 = intermediate - b
@@ -372,16 +372,16 @@ module Sphere =
                     | Less -> i1
                     | Greater -> i2
                     | Equal -> i1
-                    |> Some
+                    |> ValueSome
                 elif i1Pos then
-                    Some i1
+                    ValueSome i1
                 elif i2Pos then
-                    Some i2
+                    ValueSome i2
                 else
-                    None
+                    ValueNone
 
         match intersectionPoint with
-        | None -> ValueNone
-        | Some i ->
+        | ValueNone -> ValueNone
+        | ValueSome i ->
             // Don't return anything that's behind us
             if Float.positive i then ValueSome i else ValueNone

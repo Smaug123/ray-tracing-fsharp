@@ -16,8 +16,7 @@ type InfinitePlaneStyle =
 module InfinitePlane =
 
     let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : Ray) : Ray =
-        let plane =
-            Plane.makeOrthonormalSpannedBy (Ray.make strikePoint normal) incomingRay
+        let plane = Plane.makeOrthonormalSpannedBy (Ray.make strikePoint normal) incomingRay
 
         match plane with
         | ValueNone ->
@@ -81,6 +80,7 @@ module InfinitePlane =
                 let sphereCentre = Ray.walkAlong (Ray.make strikePoint normal) 1.0
                 let offset = UnitVector.random rand (Point.dimension pointOnPlane)
                 let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
+
                 Point.differenceToThenFrom target strikePoint
                 |> Ray.make' strikePoint
                 |> ValueOption.get

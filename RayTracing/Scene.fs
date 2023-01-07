@@ -136,7 +136,8 @@ module Scene =
         let walkDistance =
             ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
 
-        let endPoint = Ray.walkAlongRay pointOnXAxis camera.ViewportYAxis.Vector walkDistance
+        let endPoint =
+            Ray.walkAlongRay pointOnXAxis camera.ViewportYAxis.Vector walkDistance
 
         let ray =
             Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))

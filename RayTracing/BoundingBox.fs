@@ -107,8 +107,8 @@ module BoundingBox =
                     (max (Point.coordinate 2 i.Max) (Point.coordinate 2 j.Max))
         }
 
-    let merge (boxes : BoundingBox[]) : BoundingBox option =
+    let merge (boxes : BoundingBox[]) : BoundingBox voption =
         if boxes.Length = 0 then
-            None
+            ValueNone
         else
-            boxes |> Array.reduce mergeTwo |> Some
+            boxes |> Array.reduce mergeTwo |> ValueSome

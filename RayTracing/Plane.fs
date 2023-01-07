@@ -26,8 +26,8 @@ module Plane =
             else
                 Vector.make 1.0 1.0 ((-x - y) / z)
 
-        let v2 = Vector.cross v v1 |> Vector.unitise |> Option.get
-        let v1 = v1 |> Vector.unitise |> Option.get
+        let v2 = Vector.cross v v1 |> Vector.unitise |> ValueOption.get
+        let v1 = v1 |> Vector.unitise |> ValueOption.get
 
         {
             Point = point
@@ -37,7 +37,7 @@ module Plane =
 
     let inline makeNormalTo' (point : Point) (UnitVector v) = makeNormalTo point v
 
-    let orthonormalise (plane : Plane) : OrthonormalPlane option =
+    let orthonormalise (plane : Plane) : OrthonormalPlane voption =
         let coefficient = UnitVector.dot plane.V1 plane.V2
 
         let vec2 =
@@ -45,14 +45,14 @@ module Plane =
             |> Vector.unitise
 
         match vec2 with
-        | None -> None
-        | Some v2 ->
+        | ValueNone -> ValueNone
+        | ValueSome v2 ->
             {
                 V1 = plane.V1
                 V2 = v2
                 Point = plane.Point
             }
-            |> Some
+            |> ValueSome
 
     let makeSpannedBy (r1 : Ray) (r2 : Ray) : Plane =
         {
@@ -63,18 +63,18 @@ module Plane =
 
     /// Construct a basis for this plane, whose second ("up") component is `viewUp` when projected onto the plane.
     let basis (viewUp : Vector) (plane : OrthonormalPlane) : Ray * Ray =
-        let viewUp = Vector.unitise viewUp |> Option.get
+        let viewUp = Vector.unitise viewUp |> ValueOption.get
         let v1Component = UnitVector.dot plane.V1 viewUp
         let v2Component = UnitVector.dot plane.V2 viewUp
 
         let v2 =
             Vector.sum (UnitVector.scale v1Component plane.V1) (UnitVector.scale v2Component plane.V2)
             |> Vector.unitise
-            |> Option.get
+            |> ValueOption.get
 
         let v1 =
             Vector.sum (UnitVector.scale v2Component plane.V1) (UnitVector.scale (-v1Component) plane.V2)
             |> Vector.unitise
-            |> Option.get
+            |> ValueOption.get
 
         Ray.make plane.Point v1, Ray.make plane.Point v2

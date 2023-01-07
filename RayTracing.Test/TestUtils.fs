@@ -37,7 +37,7 @@ module TestUtils =
         vectorGen
         |> Gen.filter (fun i -> Vector.normSquared i > 0.0)
         |> Gen.map Vector.unitise
-        |> Gen.map Option.get
+        |> Gen.map ValueOption.get
 
     let rayGen : Gen<Ray> =
         gen {

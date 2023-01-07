@@ -76,7 +76,7 @@ module Sphere =
     /// A ray hits the sphere with centre `centre` at point `p`.
     /// This function gives the outward-pointing normal.
     let normal (centre : Point) (p : Point) : Ray =
-        Ray.make' p (Point.differenceToThenFrom p centre) |> Option.get
+        Ray.make' p (Point.differenceToThenFrom p centre) |> ValueOption.get
 
     let private liesOn' (centre : Point) (radius : float) (p : Point) : bool =
         let rSquared = radius * radius
@@ -120,10 +120,10 @@ module Sphere =
 
             let outgoing =
                 match plane with
-                | None ->
+                | ValueNone ->
                     // Incoming ray is directly along the normal
                     Ray.flip incomingLight.Ray |> Ray.parallelTo strikePoint
-                | Some plane ->
+                | ValueSome plane ->
                     // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
                     // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
                     let normalComponent = -UnitVector.dot plane.V1 (Ray.vector incomingLight.Ray)
@@ -137,7 +137,7 @@ module Sphere =
                     Point.differenceToThenFrom dest strikePoint
                     |> Ray.make' strikePoint
                     // This is safe: it's actually a logic error for this to fail.
-                    |> Option.get
+                    |> ValueOption.get
 
             match fuzz with
             | None -> outgoing
@@ -153,8 +153,8 @@ module Sphere =
                         Point.differenceToThenFrom target strikePoint |> Ray.make' strikePoint
 
                     match exitPoint with
-                    | None -> ()
-                    | Some o -> answer <- o
+                    | ValueNone -> ()
+                    | ValueSome o -> answer <- o
 
                 answer
 
@@ -163,10 +163,10 @@ module Sphere =
             let plane = Plane.makeSpannedBy normal incomingLight.Ray |> Plane.orthonormalise
 
             match plane with
-            | None ->
+            | ValueNone ->
                 // Incoming ray was parallel to normal; pass straight through
                 Ray.make strikePoint (Ray.vector incomingLight.Ray)
-            | Some plane ->
+            | ValueSome plane ->
 
             let incomingSin = sqrt (1.0 - incomingCos * incomingCos)
             let outgoingSin = incomingSin / index
@@ -186,7 +186,7 @@ module Sphere =
             |> Ray.make' strikePoint
             // This is safe: it's a logic error for this to fail. It would imply both the
             // cos and the sin outgoing components were 0.
-            |> Option.get
+            |> ValueOption.get
 
         match style with
         | SphereStyle.LightSource texture ->
@@ -219,8 +219,8 @@ module Sphere =
                         Point.differenceToThenFrom target strikePoint |> Ray.make' strikePoint
 
                     match outputPoint with
-                    | Some o -> answer <- o
-                    | None -> ()
+                    | ValueSome o -> answer <- o
+                    | ValueNone -> ()
 
                 answer
 

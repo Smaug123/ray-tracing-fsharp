@@ -64,7 +64,7 @@ module SampleImages =
                 2.0
                 aspectRatio
                 origin
-                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 400
@@ -87,7 +87,7 @@ module SampleImages =
                 InfinitePlane.make
                     (InfinitePlaneStyle.PureReflection (0.5<albedo>, Colour.White))
                     (Point.make 0.0 -1.0 0.0)
-                    (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get)
+                    (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> ValueOption.get)
             ) // Floor rug
         |]
         |> Scene.make
@@ -104,7 +104,7 @@ module SampleImages =
                 2.0
                 aspectRatio
                 origin
-                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 400
@@ -127,7 +127,7 @@ module SampleImages =
                 InfinitePlane.make
                     (InfinitePlaneStyle.FuzzedReflection (1.0<albedo>, Colour.White, 0.75<fuzz>, random))
                     (Point.make 0.0 -1.0 0.0)
-                    (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get)
+                    (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> ValueOption.get)
             ) // Floor rug
         |]
         |> Scene.make
@@ -146,7 +146,7 @@ module SampleImages =
                 7.0
                 aspectRatio
                 origin
-                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 200
@@ -215,7 +215,7 @@ module SampleImages =
                 InfinitePlane.make
                     (InfinitePlaneStyle.PureReflection (0.8<albedo>, Colour.White))
                     (Point.make 0.0 0.0 12.0)
-                    (Vector.make 1.0 0.0 -1.0 |> Vector.unitise |> Option.get)
+                    (Vector.make 1.0 0.0 -1.0 |> Vector.unitise |> ValueOption.get)
             )
 
             // Floor rug
@@ -232,7 +232,7 @@ module SampleImages =
                         random3
                     ))
                     (Point.make 0.0 -1.0 0.0)
-                    (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> Option.get)
+                    (Vector.make 0.0 1.0 0.0 |> Vector.unitise |> ValueOption.get)
             )
 
             // Right side mirror
@@ -240,7 +240,7 @@ module SampleImages =
                 InfinitePlane.make
                     (InfinitePlaneStyle.PureReflection (0.95<albedo>, Colour.White))
                     (Point.make 0.0 0.0 12.0)
-                    (Vector.make -1.0 0.0 -1.0 |> Vector.unitise |> Option.get)
+                    (Vector.make -1.0 0.0 -1.0 |> Vector.unitise |> ValueOption.get)
             )
 
             // Light pad behind us
@@ -255,7 +255,7 @@ module SampleImages =
                             }
                     ))
                     (Point.make 0.0 1.0 -1.0)
-                    (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                    (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
             )
         |]
         |> Scene.make
@@ -275,7 +275,7 @@ module SampleImages =
                 7.0
                 aspectRatio
                 origin
-                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 1200
@@ -402,7 +402,7 @@ module SampleImages =
                             }
                     ))
                     (Point.make 0.0 0.0 -5.0)
-                    (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                    (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
             )
         |]
         |> Scene.make
@@ -421,7 +421,7 @@ module SampleImages =
                 1.0
                 aspectRatio
                 origin
-                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 300
@@ -514,7 +514,7 @@ module SampleImages =
                 1.0
                 aspectRatio
                 origin
-                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 200
@@ -607,7 +607,7 @@ module SampleImages =
                 1.0
                 aspectRatio
                 origin
-                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+                (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 200
@@ -721,7 +721,7 @@ module SampleImages =
                 origin
                 (Point.differenceToThenFrom (Point.make -1.0 0.0 1.0) origin
                  |> Vector.unitise
-                 |> Option.get)
+                 |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 300
@@ -819,7 +819,7 @@ module SampleImages =
                 origin
                 (Point.differenceToThenFrom (Point.make 0.0 0.0 0.0) origin
                  |> Vector.unitise
-                 |> Option.get)
+                 |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 800
@@ -969,7 +969,7 @@ module SampleImages =
                 origin
                 (Point.differenceToThenFrom (Point.make 0.0 0.0 0.0) origin
                  |> Vector.unitise
-                 |> Option.get)
+                 |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
         let pixels = 400

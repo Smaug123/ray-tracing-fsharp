@@ -107,9 +107,11 @@ module ImageOutput =
 
                         dict.[row].[col] <-
                             ValueSome
-                                { Red = byte r
-                                  Green = byte g
-                                  Blue = byte b }
+                                {
+                                    Red = byte r
+                                    Green = byte g
+                                    Blue = byte b
+                                }
 
                         go dict reader
 
@@ -119,6 +121,22 @@ module ImageOutput =
             let result = go result stream
             return result
         }
+
+    let inline writeAsciiInt (writer : Stream) (i : int) : unit =
+        let mutable places = 0
+        let mutable tmp = i
+        let mutable pow = 1
+
+        while tmp > 0 do
+            tmp <- tmp / 10
+            pow <- pow * 10
+            places <- places + 1
+
+        pow <- pow / 10
+
+        while pow > 0 do
+            writer.WriteByte (byte ((i / pow) % 10) + 48uy) // '0'
+            pow <- pow / 10
 
     let resume
         (incrementProgress : float<progress> -> unit)
@@ -134,43 +152,44 @@ module ImageOutput =
             use outputStream = tempFile.OpenWrite ()
             use enumerator = image.Rows.GetEnumerator ()
             let mutable rowNum = 0
+
             while enumerator.MoveNext () do
 
-            let row = enumerator.Current
+                let row = enumerator.Current
 
-            do!
-                row
-                |> Array.mapi (fun colNum pixel ->
-                    async {
-                        let! pixel =
-                            match soFar.TryGetValue ((rowNum, colNum)) with
-                            | false, _ -> pixel
-                            | true, v -> async { return v }
+                do!
+                    row
+                    |> Array.mapi (fun colNum pixel ->
+                        async {
+                            let! pixel =
+                                match soFar.TryGetValue ((rowNum, colNum)) with
+                                | false, _ -> pixel
+                                | true, v -> async { return v }
 
-                        let toWrite = ASCIIEncoding.Default.GetBytes (sprintf "%i,%i" rowNum colNum)
+                            lock
+                                outputStream
+                                (fun () ->
+                                    writeAsciiInt outputStream rowNum
+                                    outputStream.WriteByte 44uy // ','
+                                    writeAsciiInt outputStream colNum
+                                    outputStream.WriteByte 10uy // '\n'
+                                    outputStream.WriteByte pixel.Red
+                                    outputStream.WriteByte pixel.Green
+                                    outputStream.WriteByte pixel.Blue
+                                )
 
-                        lock
-                            outputStream
-                            (fun () ->
-                                outputStream.Write (toWrite, 0, toWrite.Length)
-                                outputStream.WriteByte 10uy // '\n'
-                                outputStream.WriteByte pixel.Red
-                                outputStream.WriteByte pixel.Green
-                                outputStream.WriteByte pixel.Blue
-                            )
-
-                        incrementProgress 1.0<progress>
-                        return ()
-                    }
-                )
+                            incrementProgress 1.0<progress>
+                            return ()
+                        }
+                    )
 #if DEBUG
-                |> Async.Sequential
+                    |> Async.Sequential
 #else
-                |> Async.Parallel
+                    |> Async.Parallel
 #endif
-                |> Async.Ignore
+                    |> Async.Ignore
 
-            rowNum <- rowNum + 1
+                rowNum <- rowNum + 1
         }
 
 

@@ -45,6 +45,12 @@ module TestSphere =
 
         let strikePoint = Point.make 0.0 0.0 1.0
 
+        let mutable incoming =
+            {
+                LightRay.Ray = ray
+                Colour = Colour.White
+            }
+
         let destination =
             Sphere.reflection
                 (SphereStyle.Glass (1.0<albedo>, Texture.Colour Colour.Green, 1.5<ior>, rand))
@@ -52,20 +58,17 @@ module TestSphere =
                 1.0
                 1.0
                 false
-                {
-                    LightRay.Ray = ray
-                    Colour = Colour.White
-                }
+                &incoming
                 strikePoint
 
         match destination with
-        | Continues onward ->
-            onward.Colour |> shouldEqual Colour.Green
-            Point.equal (Ray.origin onward.Ray) strikePoint |> shouldEqual true
+        | ValueNone ->
+            incoming.Colour |> shouldEqual Colour.Green
+            Point.equal (Ray.origin incoming.Ray) strikePoint |> shouldEqual true
 
-            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
+            Vector.equal (Ray.vector incoming.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
             |> shouldEqual true
-        | Absorbs colour -> failwithf "Absorbed: %+A" colour
+        | ValueSome colour -> failwithf "Absorbed: %+A" colour
 
     [<Test>]
     let ``Glass sphere perfectly refracts through the middle`` () =
@@ -76,6 +79,12 @@ module TestSphere =
 
         let strikePoint = Point.make 0.0 0.0 1.0
 
+        let mutable incoming =
+            {
+                LightRay.Ray = ray
+                Colour = Colour.White
+            }
+
         let destination =
             Sphere.reflection
                 (SphereStyle.Glass (1.0<albedo>, Texture.Colour Colour.Green, 1.5<ior>, rand))
@@ -83,20 +92,17 @@ module TestSphere =
                 1.0
                 1.0
                 false
-                {
-                    LightRay.Ray = ray
-                    Colour = Colour.White
-                }
+                &incoming
                 strikePoint
 
         match destination with
-        | Continues onward ->
-            onward.Colour |> shouldEqual Colour.Green
-            Point.equal (Ray.origin onward.Ray) strikePoint |> shouldEqual true
+        | ValueNone ->
+            incoming.Colour |> shouldEqual Colour.Green
+            Point.equal (Ray.origin incoming.Ray) strikePoint |> shouldEqual true
 
-            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
+            Vector.equal (Ray.vector incoming.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
             |> shouldEqual true
-        | Absorbs colour -> failwithf "Absorbed: %+A" colour
+        | ValueSome colour -> failwithf "Absorbed: %+A" colour
 
     [<Test>]
     let ``Dielectric sphere refracts when incoming ray `` () =
@@ -107,6 +113,12 @@ module TestSphere =
 
         let strikePoint = Point.make 0.0 0.0 1.0
 
+        let mutable incoming =
+            {
+                LightRay.Ray = ray
+                Colour = Colour.White
+            }
+
         let destination =
             Sphere.reflection
                 (SphereStyle.Dielectric (1.0<albedo>, Texture.Colour Colour.Green, 1.5<ior>, 1.0<prob>, rand))
@@ -114,20 +126,17 @@ module TestSphere =
                 1.0
                 1.0
                 false
-                {
-                    LightRay.Ray = ray
-                    Colour = Colour.White
-                }
+                &incoming
                 strikePoint
 
         match destination with
-        | Continues onward ->
-            onward.Colour |> shouldEqual Colour.Green
-            Point.equal (Ray.origin onward.Ray) strikePoint |> shouldEqual true
+        | ValueNone ->
+            incoming.Colour |> shouldEqual Colour.Green
+            Point.equal (Ray.origin incoming.Ray) strikePoint |> shouldEqual true
 
-            Vector.equal (Ray.vector onward.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
+            Vector.equal (Ray.vector incoming.Ray |> UnitVector.scale 1.0) (Ray.vector ray |> UnitVector.scale 1.0)
             |> shouldEqual true
-        | Absorbs colour -> failwithf "Absorbed: %+A" colour
+        | ValueSome colour -> failwithf "Absorbed: %+A" colour
 
     [<Test>]
     let ``Test planeMap`` () =

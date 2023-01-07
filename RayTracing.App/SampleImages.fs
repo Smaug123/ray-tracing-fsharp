@@ -822,7 +822,7 @@ module SampleImages =
                  |> ValueOption.get)
                 (Vector.make 0.0 1.0 0.0)
 
-        let pixels = 800
+        let pixels = 200
 
         let spheres =
             [|

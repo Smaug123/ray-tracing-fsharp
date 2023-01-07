@@ -90,29 +90,28 @@ module Scene =
         else
             ValueSome (struct (best, Ray.walkAlong ray bestLength))
 
-    let internal traceRay (maxCount : int) (scene : Scene) (ray : LightRay) : Pixel =
-        let rec go (bounces : int) (ray : LightRay) : Pixel =
-            if bounces > maxCount then
-                if ray.Colour = Colour.Black then
-                    Colour.Black
-                else
-                    Colour.HotPink
-            else
+    let internal traceRay (maxCount : int) (scene : Scene) (ray : byref<LightRay>) : Pixel =
+        let mutable bounces = 0
+        let mutable result = Colour.Black
+        let mutable isDone = false
 
+        while bounces <= maxCount && not isDone do
             let thingsWeHit = hitObject scene ray.Ray
 
             match thingsWeHit with
             | ValueNone ->
                 // Ray goes off into the distance and is never heard from again
-                Colour.Black
+                isDone <- true
             | ValueSome (object, strikePoint) ->
-                let outgoingRay = object.Reflection ray strikePoint
+                let outgoingRay = object.Reflection (&ray, strikePoint)
 
                 match outgoingRay with
-                | Absorbs colour -> colour
-                | Continues outgoingRay -> go (bounces + 1) outgoingRay
+                | ValueSome colour ->
+                    isDone <- true
+                    result <- colour
+                | ValueNone -> bounces <- bounces + 1
 
-        go 0 ray
+        if not isDone then Colour.HotPink else result
 
     /// Trace a ray to this one pixel, updating the PixelStats with the result.
     /// n.b. not thread safe
@@ -143,15 +142,14 @@ module Scene =
             Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))
             |> ValueOption.get
 
+        let mutable initialRay =
+            {
+                Ray = ray
+                Colour = Colour.White
+            }
+
         // Here we've hardcoded that the eye is emitting white light through a medium with refractance 1.
-        let result =
-            traceRay
-                camera.BounceDepth
-                scene
-                {
-                    Ray = ray
-                    Colour = Colour.White
-                }
+        let result = traceRay camera.BounceDepth scene &initialRay
 
         PixelStats.add result stats
 

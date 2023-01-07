@@ -12,34 +12,8 @@ type InfinitePlaneStyle =
     | LambertReflection of albedo : float<albedo> * colour : Pixel * FloatProducer
     | FuzzedReflection of albedo : float<albedo> * colour : Pixel * fuzz : float<fuzz> * FloatProducer
 
-type InfinitePlane =
-    {
-        Normal : UnitVector
-        Point : Point
-        /// If an incoming ray hits the given point (which is guaranteed to be on the surface),
-        /// what colour ray does it output and in what direction?
-        Reflection : LightRay -> Point -> LightDestination
-    }
-
 [<RequireQualifiedAccess>]
 module InfinitePlane =
-
-    /// Returns the position along this ray where we intersect this plane, or None if none exists or the ray is in the plane.
-    /// Does not return any intersections which are behind us.
-    /// If the plane is made of a material which does not re-emit light, you'll
-    /// get a None for the outgoing ray.
-    let intersection (plane : InfinitePlane) (ray : Ray) : float voption =
-        let rayVec = Ray.vector ray
-        let denominator = UnitVector.dot plane.Normal rayVec
-
-        if Float.equal denominator 0.0 then
-            ValueNone
-        else
-            let t =
-                (UnitVector.dot' plane.Normal (Point.differenceToThenFrom plane.Point (Ray.origin ray)))
-                / denominator
-
-            if Float.positive t then ValueSome t else ValueNone
 
     let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : Ray) : Ray =
         let plane =
@@ -72,16 +46,16 @@ module InfinitePlane =
         (style : InfinitePlaneStyle)
         (pointOnPlane : Point)
         (normal : UnitVector)
-        (incomingRay : LightRay)
+        (incomingRay : byref<LightRay>)
         (strikePoint : Point)
-        : LightDestination
+        : Pixel ValueOption
         =
         match style with
         | InfinitePlaneStyle.LightSource texture ->
             texture
             |> Texture.colourAt strikePoint
             |> Pixel.combine incomingRay.Colour
-            |> Absorbs
+            |> ValueSome
 
         | InfinitePlaneStyle.FuzzedReflection (albedo, colour, fuzz, rand) ->
             let newColour = newColour incomingRay.Colour albedo colour
@@ -98,11 +72,13 @@ module InfinitePlane =
                 | ValueNone -> ()
                 | ValueSome output -> outgoing <- output
 
-            Continues
+            incomingRay <-
                 {
                     Ray = outgoing
                     Colour = newColour
                 }
+
+            ValueNone
 
         | InfinitePlaneStyle.LambertReflection (albedo, colour, rand) ->
             let outgoing =
@@ -116,22 +92,56 @@ module InfinitePlane =
 
             let newColour = Pixel.combine incomingRay.Colour colour |> Pixel.darken albedo
 
-            Continues
+            incomingRay <-
                 {
                     Ray = outgoing
                     Colour = newColour
                 }
 
-        | InfinitePlaneStyle.PureReflection (albedo, colour) ->
-            {
-                Ray = pureOutgoing strikePoint normal incomingRay.Ray
-                Colour = newColour incomingRay.Colour albedo colour
-            }
-            |> Continues
+            ValueNone
 
-    let make (style : InfinitePlaneStyle) (pointOnPlane : Point) (normal : UnitVector) : InfinitePlane =
+        | InfinitePlaneStyle.PureReflection (albedo, colour) ->
+            incomingRay <-
+                {
+                    Ray = pureOutgoing strikePoint normal incomingRay.Ray
+                    Colour = newColour incomingRay.Colour albedo colour
+                }
+
+            ValueNone
+
+type InfinitePlane =
+    {
+        Style : InfinitePlaneStyle
+        Normal : UnitVector
+        Point : Point
+    }
+
+    /// If an incoming ray hits the given point (which is guaranteed to be on the surface),
+    /// is it absorbed (if so, returns Some(the colour of light)), or does it bounce off
+    /// (if so, returns None and mutates the input ray to the new reflected ray)?
+    member this.Reflection (ray : byref<LightRay>, strikePoint : Point) : Pixel ValueOption =
+        InfinitePlane.reflection this.Style this.Point this.Normal &ray strikePoint
+
+    static member make (style : InfinitePlaneStyle) (pointOnPlane : Point) (normal : UnitVector) : InfinitePlane =
         {
             Point = pointOnPlane
+            Style = style
             Normal = normal
-            Reflection = reflection style pointOnPlane normal
         }
+
+    /// Returns the position along this ray where we intersect this plane, or None if none exists or the ray is in the plane.
+    /// Does not return any intersections which are behind us.
+    /// If the plane is made of a material which does not re-emit light, you'll
+    /// get a None for the outgoing ray.
+    static member intersection (plane : InfinitePlane) (ray : Ray) : float voption =
+        let rayVec = Ray.vector ray
+        let denominator = UnitVector.dot plane.Normal rayVec
+
+        if Float.equal denominator 0.0 then
+            ValueNone
+        else
+            let t =
+                (UnitVector.dot' plane.Normal (Point.differenceToThenFrom plane.Point (Ray.origin ray)))
+                / denominator
+
+            if Float.positive t then ValueSome t else ValueNone

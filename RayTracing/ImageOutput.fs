@@ -6,6 +6,7 @@ open System.Collections.Immutable
 open System.IO
 open System.IO.Abstractions
 open System.Text
+open System.Threading.Tasks
 open SkiaSharp
 
 [<RequireQualifiedAccess>]
@@ -122,64 +123,71 @@ module ImageOutput =
             return result
         }
 
+    let inline writeAsciiInt (writer : Stream) (i : int) : unit =
+        let mutable places = 0
+        let mutable tmp = i
+        let mutable pow = 1
+
+        while tmp > 0 do
+            tmp <- tmp / 10
+            pow <- pow * 10
+            places <- places + 1
+
+        pow <- pow / 10
+
+        while pow > 0 do
+            writer.WriteByte (byte ((i / pow) % 10) + 48uy) // '0'
+            pow <- pow / 10
+
     let resume
         (incrementProgress : float<progress> -> unit)
         (soFar : IReadOnlyDictionary<int * int, Pixel>)
         (image : Image)
         (fs : IFileSystem)
-        : IFileInfo * Async<unit>
+        : IFileInfo * Task<unit>
         =
-        let rec go (writer : Stream) (rowNum : int) (rowEnum : IEnumerator<Pixel Async[]>) =
-            async {
-                if not (rowEnum.MoveNext ()) then
-                    return ()
-                else
+        let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
 
-                let row = rowEnum.Current
+        tempFile,
+        task {
+            use outputStream = tempFile.OpenWrite ()
+            use enumerator = image.Rows.GetEnumerator ()
+            let mutable rowNum = 0
 
-                do!
+            while enumerator.MoveNext () do
+
+                let row = enumerator.Current
+
+                let! _ =
                     row
                     |> Array.mapi (fun colNum pixel ->
-                        async {
+                        backgroundTask {
                             let! pixel =
                                 match soFar.TryGetValue ((rowNum, colNum)) with
                                 | false, _ -> pixel
                                 | true, v -> async { return v }
 
-                            let toWrite = ASCIIEncoding.Default.GetBytes (sprintf "%i,%i" rowNum colNum)
-
                             lock
-                                writer
+                                outputStream
                                 (fun () ->
-                                    writer.Write (toWrite, 0, toWrite.Length)
-                                    writer.WriteByte 10uy // '\n'
-                                    writer.WriteByte pixel.Red
-                                    writer.WriteByte pixel.Green
-                                    writer.WriteByte pixel.Blue
+                                    writeAsciiInt outputStream rowNum
+                                    outputStream.WriteByte 44uy // ','
+                                    writeAsciiInt outputStream colNum
+                                    outputStream.WriteByte 10uy // '\n'
+                                    outputStream.WriteByte pixel.Red
+                                    outputStream.WriteByte pixel.Green
+                                    outputStream.WriteByte pixel.Blue
                                 )
 
                             incrementProgress 1.0<progress>
                             return ()
                         }
                     )
-#if DEBUG
-                    |> Async.Sequential
-#else
-                    |> Async.Parallel
-#endif
-                    |> Async.Ignore
+                    |> Task.WhenAll
 
-                return! go writer (rowNum + 1) rowEnum
-            }
-
-        let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
-
-        tempFile,
-        async {
-            use outputStream = tempFile.OpenWrite ()
-            use enumerator = image.Rows.GetEnumerator ()
-            return! go outputStream 0 enumerator
+                rowNum <- rowNum + 1
         }
+
 
     let writePpm
         (gammaCorrect : bool)
@@ -227,7 +235,7 @@ module ImageOutput =
         (progressIncrement : float<progress> -> unit)
         (image : Image)
         (fs : IFileSystem)
-        : IFileInfo * Async<unit>
+        : IFileInfo * Task<unit>
         =
         resume progressIncrement ImmutableDictionary.Empty image fs
 

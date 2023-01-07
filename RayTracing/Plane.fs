@@ -61,6 +61,23 @@ module Plane =
             Point = Ray.origin r1
         }
 
+    let makeOrthonormalSpannedBy (r1 : Ray) (r2 : Ray) : OrthonormalPlane ValueOption =
+        let coefficient = UnitVector.dot r1.Vector r2.Vector
+
+        let vec2 =
+            UnitVector.difference' r2.Vector (UnitVector.scale coefficient r1.Vector)
+            |> Vector.unitise
+
+        match vec2 with
+        | ValueNone -> ValueNone
+        | ValueSome v2 ->
+            {
+                V1 = r1.Vector
+                V2 = v2
+                Point = Ray.origin r1
+            }
+            |> ValueSome
+
     /// Construct a basis for this plane, whose second ("up") component is `viewUp` when projected onto the plane.
     let basis (viewUp : Vector) (plane : OrthonormalPlane) : Ray * Ray =
         let viewUp = Vector.unitise viewUp |> ValueOption.get

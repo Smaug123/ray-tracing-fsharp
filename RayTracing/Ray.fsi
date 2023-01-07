@@ -19,6 +19,8 @@ module Ray =
 
     val walkAlong : Ray -> float -> Point
 
+    val walkAlongRay : Point -> UnitVector -> float -> Point
+
     val parallelTo : Point -> Ray -> Ray
     val translateToIntersect : Point -> Ray -> unit
 

@@ -17,8 +17,7 @@ module InfinitePlane =
 
     let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : Ray) : Ray =
         let plane =
-            Plane.makeSpannedBy (Ray.make strikePoint normal) incomingRay
-            |> Plane.orthonormalise
+            Plane.makeOrthonormalSpannedBy (Ray.make strikePoint normal) incomingRay
 
         match plane with
         | ValueNone ->

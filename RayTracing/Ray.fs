@@ -39,11 +39,11 @@ module Ray =
             Vector = vector
         }
 
-    let walkAlong (ray : Ray) (magnitude : float) : Point =
-        let (Point (oX, oY, oZ)) = ray.Origin
-        let (UnitVector (Vector (vX, vY, vZ))) = ray.Vector
-
+    let walkAlongRay (Point (oX, oY, oZ)) (UnitVector (Vector (vX, vY, vZ))) (magnitude : float) : Point =
         Point.make (oX + (vX * magnitude)) (oY + (vY * magnitude)) (oZ + (vZ * magnitude))
+
+    let walkAlong (ray : Ray) (magnitude : float) : Point =
+        walkAlongRay ray.Origin ray.Vector magnitude
 
     let parallelTo (p1 : Point) (ray : Ray) : Ray =
         {

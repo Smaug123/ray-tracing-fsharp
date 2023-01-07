@@ -131,25 +131,12 @@ module Scene =
         let landingPoint =
             ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
 
-        // Inline to save a Ray creation
-        // let pointOnXAxis = landingPoint |> Ray.walkAlong camera.ViewportXAxis
-        let pointOnXAxis =
-            let (Point (oX, oY, oZ)) = camera.ViewportXAxis.Origin
-            let (UnitVector (Vector (vX, vY, vZ))) = camera.ViewportXAxis.Vector
-
-            Point.make (oX + (vX * landingPoint)) (oY + (vY * landingPoint)) (oZ + (vZ * landingPoint))
+        let pointOnXAxis = Ray.walkAlong camera.ViewportXAxis landingPoint
 
         let walkDistance =
             ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
 
-        // Inline to save a Ray creation
-        // let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
-        // let endPoint = Ray.walkAlong toWalkUp walkDistance
-        let endPoint =
-            let (Point (oX, oY, oZ)) = pointOnXAxis
-            let (UnitVector (Vector (vX, vY, vZ))) = camera.ViewportYAxis.Vector
-
-            Point.make (oX + (vX * walkDistance)) (oY + (vY * walkDistance)) (oZ + (vZ * walkDistance))
+        let endPoint = Ray.walkAlongRay pointOnXAxis camera.ViewportYAxis.Vector walkDistance
 
         let ray =
             Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))

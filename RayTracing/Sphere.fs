@@ -66,7 +66,7 @@ module Sphere =
         Ray.make' p (Point.differenceToThenFrom p centre) |> ValueOption.get
 
     let private reflectWithoutFuzz normal (strikePoint : Point) (incomingLight : byref<LightRay>) : unit =
-        let plane = Plane.makeSpannedBy normal incomingLight.Ray |> Plane.orthonormalise
+        let plane = Plane.makeOrthonormalSpannedBy normal incomingLight.Ray
 
         match plane with
         | ValueNone ->
@@ -80,9 +80,7 @@ module Sphere =
             let tangentComponent = (UnitVector.dot plane.V2 (Ray.vector incomingLight.Ray))
 
             let dest =
-                Ray.walkAlong
-                    (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2)
-                    tangentComponent
+                Ray.walkAlongRay (Ray.walkAlongRay plane.Point plane.V1 normalComponent) plane.V2 tangentComponent
 
             Ray.overwriteWithMake strikePoint (Point.differenceToThenFrom dest strikePoint) &incomingLight.Ray
             // This is safe: it's actually a logic error for this to fail.
@@ -100,15 +98,7 @@ module Sphere =
         while not isDone do
             let offset = UnitVector.random rand (Point.dimension strikePoint)
             let sphereCentre = Ray.walkAlong reflected.Ray 1.0
-            // Inline to avoid the creation of a Ray
-            // let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
-            let (Point (oX, oY, oZ)) = sphereCentre
-            let (UnitVector (Vector (vX, vY, vZ))) = offset
-
-            let magnitude = fuzz / 1.0<fuzz>
-
-            let target =
-                Point.make (oX + (vX * magnitude)) (oY + (vY * magnitude)) (oZ + (vZ * magnitude))
+            let target = Ray.walkAlongRay sphereCentre offset (fuzz / 1.0<fuzz>)
 
             let newDirection = Point.differenceToThenFrom target strikePoint
             isDone <- Ray.overwriteWithMake strikePoint newDirection &reflected.Ray
@@ -125,7 +115,7 @@ module Sphere =
         : unit
         =
         let index = if inside then 1.0<ior> / index else index / 1.0<ior>
-        let plane = Plane.makeSpannedBy normal incomingLight.Ray |> Plane.orthonormalise
+        let plane = Plane.makeOrthonormalSpannedBy normal incomingLight.Ray
 
         match plane with
         | ValueNone ->
@@ -223,12 +213,7 @@ module Sphere =
 
             while not isDone do
                 let offset = UnitVector.random rand (Point.dimension sphereCentre)
-                // Inline to avoid the creation of a Ray
-                // let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
-                let (Point (oX, oY, oZ)) = sphereCentre
-                let (UnitVector (Vector (vX, vY, vZ))) = offset
-
-                let target = Point.make (oX + vX) (oY + vY) (oZ + vZ)
+                let target = Ray.walkAlongRay sphereCentre offset 1.0
 
                 let outputVec = Point.differenceToThenFrom target strikePoint
 

@@ -103,9 +103,9 @@ module Scene =
                 // Ray goes off into the distance and is never heard from again
                 isDone <- true
             | ValueSome (object, strikePoint) ->
-                let outgoingRay = object.Reflection (&ray, strikePoint)
+                let stopWithColour = object.Reflection (&ray, strikePoint)
 
-                match outgoingRay with
+                match stopWithColour with
                 | ValueSome colour ->
                     isDone <- true
                     result <- colour
@@ -131,12 +131,25 @@ module Scene =
         let landingPoint =
             ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
 
-        let pointOnXAxis = landingPoint |> Ray.walkAlong camera.ViewportXAxis
-        let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
+        // Inline to save a Ray creation
+        // let pointOnXAxis = landingPoint |> Ray.walkAlong camera.ViewportXAxis
+        let pointOnXAxis =
+            let (Point (oX, oY, oZ)) = camera.ViewportXAxis.Origin
+            let (UnitVector (Vector (vX, vY, vZ))) = camera.ViewportXAxis.Vector
 
-        let endPoint =
+            Point.make (oX + (vX * landingPoint)) (oY + (vY * landingPoint)) (oZ + (vZ * landingPoint))
+
+        let walkDistance =
             ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
-            |> Ray.walkAlong toWalkUp
+
+        // Inline to save a Ray creation
+        // let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
+        // let endPoint = Ray.walkAlong toWalkUp walkDistance
+        let endPoint =
+            let (Point (oX, oY, oZ)) = pointOnXAxis
+            let (UnitVector (Vector (vX, vY, vZ))) = camera.ViewportYAxis.Vector
+
+            Point.make (oX + (vX * walkDistance)) (oY + (vY * walkDistance)) (oZ + (vZ * walkDistance))
 
         let ray =
             Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))
@@ -170,12 +183,12 @@ module Scene =
 
         let firstTrial = min 5 (camera.SamplesPerPixel / 2)
 
-        for _ in 0..firstTrial do
+        for _ = 0 to firstTrial do
             traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let oldMean = PixelStats.mean stats
 
-        for _ in 1..firstTrial do
+        for _ = 1 to firstTrial do
             traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let newMean = PixelStats.mean stats
@@ -187,7 +200,7 @@ module Scene =
             newMean
         else
 
-            for _ in 1 .. (camera.SamplesPerPixel - 2 * firstTrial - 1) do
+            for _ = 1 to (camera.SamplesPerPixel - 2 * firstTrial - 1) do
                 traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
             PixelStats.mean stats

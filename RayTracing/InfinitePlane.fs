@@ -72,11 +72,8 @@ module InfinitePlane =
                 | ValueNone -> ()
                 | ValueSome output -> outgoing <- output
 
-            incomingRay <-
-                {
-                    Ray = outgoing
-                    Colour = newColour
-                }
+            incomingRay.Colour <- newColour
+            incomingRay.Ray <- outgoing
 
             ValueNone
 
@@ -92,20 +89,14 @@ module InfinitePlane =
 
             let newColour = Pixel.combine incomingRay.Colour colour |> Pixel.darken albedo
 
-            incomingRay <-
-                {
-                    Ray = outgoing
-                    Colour = newColour
-                }
+            incomingRay.Colour <- newColour
+            incomingRay.Ray <- outgoing
 
             ValueNone
 
         | InfinitePlaneStyle.PureReflection (albedo, colour) ->
-            incomingRay <-
-                {
-                    Ray = pureOutgoing strikePoint normal incomingRay.Ray
-                    Colour = newColour incomingRay.Colour albedo colour
-                }
+            incomingRay.Colour <- newColour incomingRay.Colour albedo colour
+            incomingRay.Ray <- pureOutgoing strikePoint normal incomingRay.Ray
 
             ValueNone
 

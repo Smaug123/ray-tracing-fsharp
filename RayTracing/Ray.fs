@@ -2,12 +2,27 @@ namespace RayTracing
 
 type Ray =
     {
-        Origin : Point
-        Vector : UnitVector
+        mutable Origin : Point
+        mutable Vector : UnitVector
     }
 
 [<RequireQualifiedAccess>]
 module Ray =
+    let overwriteWithMake (origin : Point) (vector : Vector) (ray : byref<Ray>) : bool =
+        let dot = Vector.dot vector vector
+
+        if Float.equal dot 0.0 then
+            false
+        else
+
+        ray.Origin <- origin
+
+        ray.Vector <-
+            let factor = 1.0 / sqrt dot
+            Vector.scale factor vector |> UnitVector
+
+        true
+
     let make' (origin : Point) (vector : Vector) : Ray ValueOption =
         match Vector.unitise vector with
         | ValueNone -> ValueNone
@@ -36,6 +51,8 @@ module Ray =
             Origin = p1
         }
 
+    let translateToIntersect (p1 : Point) (ray : Ray) : unit = ray.Origin <- p1
+
     let liesOn (point : Point) (ray : Ray) : bool =
         match point, ray.Origin, ray.Vector with
         | Point (p1, p2, p3), Point (o1, o2, o3), UnitVector (Vector (r1, r2, r3)) ->
@@ -58,3 +75,7 @@ module Ray =
                 let (UnitVector v) = r.Vector
                 Vector.scale -1.0 v |> UnitVector
         }
+
+    let flipInPlace (r : Ray) : unit =
+        let (UnitVector v) = r.Vector
+        r.Vector <- Vector.scale -1.0 v |> UnitVector

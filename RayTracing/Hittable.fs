@@ -11,11 +11,11 @@ type Hittable =
         | UnboundedSphere s -> s.Reflection incoming strikePoint
         | InfinitePlane p -> p.Reflection incoming strikePoint
 
-    member this.BoundingBox : BoundingBox option =
+    member this.BoundingBox : BoundingBox voption =
         match this with
-        | Sphere s -> Sphere.boundingBox s |> Some
+        | Sphere s -> Sphere.boundingBox s |> ValueSome
         | UnboundedSphere _
-        | InfinitePlane _ -> None
+        | InfinitePlane _ -> ValueNone
 
 [<RequireQualifiedAccess>]
 module Hittable =

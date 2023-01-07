@@ -6,13 +6,13 @@ type BoundingBoxTree =
 
 [<RequireQualifiedAccess>]
 module BoundingBoxTree =
-    let make (boxes : (Hittable * BoundingBox) array) : BoundingBoxTree option =
+    let make (boxes : (Hittable * BoundingBox) array) : BoundingBoxTree voption =
         if boxes.Length = 0 then
-            None
+            ValueNone
         else
 
             let rec go (boxes : (Hittable * BoundingBox) array) =
-                let boundAll = BoundingBox.merge (boxes |> Array.map snd) |> Option.get
+                let boundAll = BoundingBox.merge (boxes |> Array.map snd) |> ValueOption.get
 
                 if boxes.Length = 1 then
                     Leaf boxes.[0]
@@ -27,8 +27,8 @@ module BoundingBoxTree =
                                 let boxes = boxes |> Array.sortBy (fun (_, b) -> Point.coordinate axis b.Min)
                                 let leftHalf = boxes.[0 .. boxes.Length / 2]
                                 let rightHalf = boxes.[(boxes.Length / 2) + 1 ..]
-                                let leftBound = leftHalf |> Array.map snd |> BoundingBox.merge |> Option.get
-                                let rightBound = rightHalf |> Array.map snd |> BoundingBox.merge |> Option.get
+                                let leftBound = leftHalf |> Array.map snd |> BoundingBox.merge |> ValueOption.get
+                                let rightBound = rightHalf |> Array.map snd |> BoundingBox.merge |> ValueOption.get
                                 (leftHalf, leftBound), (rightHalf, rightBound)
                             )
 
@@ -40,4 +40,4 @@ module BoundingBoxTree =
 
                     Branch (go leftHalf, go rightHalf, boundAll)
 
-            go boxes |> Some
+            go boxes |> ValueSome

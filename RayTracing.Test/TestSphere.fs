@@ -41,7 +41,7 @@ module TestSphere =
         let rand = Random () |> FloatProducer
 
         let ray =
-            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
 
         let strikePoint = Point.make 0.0 0.0 1.0
 
@@ -72,7 +72,7 @@ module TestSphere =
         let rand = Random () |> FloatProducer
 
         let ray =
-            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
 
         let strikePoint = Point.make 0.0 0.0 1.0
 
@@ -103,7 +103,7 @@ module TestSphere =
         let rand = Random () |> FloatProducer
 
         let ray =
-            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> Option.get)
+            Ray.make (Point.make 0.0 0.0 0.0) (Vector.make 0.0 0.0 1.0 |> Vector.unitise |> ValueOption.get)
 
         let strikePoint = Point.make 0.0 0.0 1.0
 

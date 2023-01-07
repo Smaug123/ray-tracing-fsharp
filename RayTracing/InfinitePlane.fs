@@ -47,10 +47,10 @@ module InfinitePlane =
             |> Plane.orthonormalise
 
         match plane with
-        | None ->
+        | ValueNone ->
             // Incoming ray is directly along the normal
             Ray.flip incomingRay |> Ray.parallelTo strikePoint
-        | Some plane ->
+        | ValueSome plane ->
             // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
             // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
             let normalComponent = -(UnitVector.dot plane.V1 (Ray.vector incomingRay))
@@ -63,7 +63,7 @@ module InfinitePlane =
             Point.differenceToThenFrom s strikePoint
             |> Ray.make' strikePoint
             // This is definitely safe. It's actually a logic error if this fails.
-            |> Option.get
+            |> ValueOption.get
 
     let newColour (incomingColour : Pixel) albedo colour =
         Pixel.combine incomingColour colour |> Pixel.darken albedo
@@ -94,8 +94,8 @@ module InfinitePlane =
                     let output = Point.differenceToThenFrom target strikePoint |> Ray.make' strikePoint
 
                     match output with
-                    | None -> ()
-                    | Some output -> outgoing <- output
+                    | ValueNone -> ()
+                    | ValueSome output -> outgoing <- output
 
                 Continues
                     {
@@ -111,7 +111,7 @@ module InfinitePlane =
 
                     Point.differenceToThenFrom target strikePoint
                     |> Ray.make' strikePoint
-                    |> Option.get
+                    |> ValueOption.get
 
                 let newColour = Pixel.combine incomingRay.Colour colour |> Pixel.darken albedo
 

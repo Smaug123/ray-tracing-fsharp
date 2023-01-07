@@ -38,7 +38,7 @@ module TestSphereIntersection =
             Ray.make'
                 (Point.make 1.462205539 -4.888279676 7.123293244)
                 (Vector.make -9.549697616 4.400018428 10.41024923)
-            |> Option.get
+            |> ValueOption.get
 
         let sphere =
             Sphere.make

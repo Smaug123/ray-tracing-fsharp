@@ -59,7 +59,7 @@ module Scene =
             else
                 struct (bestFloat, bestObject, bestLength)
 
-    let hitObject (s : Scene) (ray : Ray) : (Hittable * Point) voption =
+    let hitObject (s : Scene) (ray : Ray) : struct (Hittable * Point) voption =
         let mutable best = Unchecked.defaultof<_>
         let mutable bestLength = nan
         let mutable bestFloat = infinity
@@ -88,31 +88,30 @@ module Scene =
         if Double.IsNaN bestLength then
             ValueNone
         else
-            ValueSome (best, Ray.walkAlong ray bestLength)
+            ValueSome (struct (best, Ray.walkAlong ray bestLength))
 
-    let internal traceRay (maxCount : int) (scene : Scene) (ray : LightRay) : Pixel =
-        let rec go (bounces : int) (ray : LightRay) : Pixel =
-            if bounces > maxCount then
-                if ray.Colour = Colour.Black then
-                    Colour.Black
-                else
-                    Colour.HotPink
-            else
+    let internal traceRay (maxCount : int) (scene : Scene) (ray : byref<LightRay>) : Pixel =
+        let mutable bounces = 0
+        let mutable result = Colour.Black
+        let mutable isDone = false
 
+        while bounces <= maxCount && not isDone do
             let thingsWeHit = hitObject scene ray.Ray
 
             match thingsWeHit with
             | ValueNone ->
                 // Ray goes off into the distance and is never heard from again
-                Colour.Black
+                isDone <- true
             | ValueSome (object, strikePoint) ->
-                let outgoingRay = object.Reflection ray strikePoint
+                let stopWithColour = object.Reflection (&ray, strikePoint)
 
-                match outgoingRay with
-                | Absorbs colour -> colour
-                | Continues outgoingRay -> go (bounces + 1) outgoingRay
+                match stopWithColour with
+                | ValueSome colour ->
+                    isDone <- true
+                    result <- colour
+                | ValueNone -> bounces <- bounces + 1
 
-        go 0 ray
+        if not isDone then Colour.HotPink else result
 
     /// Trace a ray to this one pixel, updating the PixelStats with the result.
     /// n.b. not thread safe
@@ -122,35 +121,36 @@ module Scene =
         (camera : Camera)
         (maxWidthCoord : int)
         (maxHeightCoord : int)
-        row
-        col
-        stats
+        (row : int)
+        (col : int)
+        (stats : PixelStats)
+        : unit
         =
         let struct (rand1, rand2) = rand.GetTwo ()
 
         let landingPoint =
             ((float col + rand1) * camera.ViewportWidth) / float maxWidthCoord
 
-        let pointOnXAxis = landingPoint |> Ray.walkAlong camera.ViewportXAxis
-        let toWalkUp = Ray.parallelTo pointOnXAxis camera.ViewportYAxis
+        let pointOnXAxis = Ray.walkAlong camera.ViewportXAxis landingPoint
+
+        let walkDistance =
+            ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
 
         let endPoint =
-            ((float row + rand2) * camera.ViewportHeight) / float maxHeightCoord
-            |> Ray.walkAlong toWalkUp
+            Ray.walkAlongRay pointOnXAxis camera.ViewportYAxis.Vector walkDistance
 
         let ray =
             Ray.make' (Ray.origin camera.View) (Point.differenceToThenFrom endPoint (Ray.origin camera.View))
             |> ValueOption.get
 
+        let mutable initialRay =
+            {
+                Ray = ray
+                Colour = Colour.White
+            }
+
         // Here we've hardcoded that the eye is emitting white light through a medium with refractance 1.
-        let result =
-            traceRay
-                camera.BounceDepth
-                scene
-                {
-                    Ray = ray
-                    Colour = Colour.White
-                }
+        let result = traceRay camera.BounceDepth scene &initialRay
 
         PixelStats.add result stats
 
@@ -171,12 +171,12 @@ module Scene =
 
         let firstTrial = min 5 (camera.SamplesPerPixel / 2)
 
-        for _ in 0..firstTrial do
+        for _ = 0 to firstTrial do
             traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let oldMean = PixelStats.mean stats
 
-        for _ in 1..firstTrial do
+        for _ = 1 to firstTrial do
             traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
         let newMean = PixelStats.mean stats
@@ -188,7 +188,7 @@ module Scene =
             newMean
         else
 
-            for _ in 1 .. (camera.SamplesPerPixel - 2 * firstTrial - 1) do
+            for _ = 1 to (camera.SamplesPerPixel - 2 * firstTrial - 1) do
                 traceOnce scene rand camera maxWidthCoord maxHeightCoord row col stats
 
             PixelStats.mean stats

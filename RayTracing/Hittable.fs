@@ -5,11 +5,11 @@ type Hittable =
     | UnboundedSphere of Sphere
     | InfinitePlane of InfinitePlane
 
-    member this.Reflection (incoming : LightRay) (strikePoint : Point) =
+    member this.Reflection (incoming : byref<LightRay>, strikePoint : Point) =
         match this with
         | Sphere s
-        | UnboundedSphere s -> s.Reflection incoming strikePoint
-        | InfinitePlane p -> p.Reflection incoming strikePoint
+        | UnboundedSphere s -> s.Reflection (&incoming, strikePoint)
+        | InfinitePlane p -> p.Reflection (&incoming, strikePoint)
 
     member this.BoundingBox : BoundingBox voption =
         match this with

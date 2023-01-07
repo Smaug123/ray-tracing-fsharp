@@ -37,7 +37,7 @@ module Plane =
 
     let inline makeNormalTo' (point : Point) (UnitVector v) = makeNormalTo point v
 
-    let orthonormalise (plane : Plane) : OrthonormalPlane ValueOption =
+    let orthonormalise (plane : Plane) : OrthonormalPlane voption =
         let coefficient = UnitVector.dot plane.V1 plane.V2
 
         let vec2 =

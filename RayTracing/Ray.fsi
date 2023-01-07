@@ -10,7 +10,7 @@ type Ray =
 
 [<RequireQualifiedAccess>]
 module Ray =
-    val make' : Point -> Vector -> Ray ValueOption
+    val make' : Point -> Vector -> Ray voption
     val make : Point -> UnitVector -> Ray
 
     /// If we can make a ray from Point and Vector, overwrite the input and return true.

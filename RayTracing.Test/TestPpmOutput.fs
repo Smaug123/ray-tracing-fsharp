@@ -41,7 +41,7 @@ module TestRayTracing =
         let tempOutput, await = ImageOutput.toPpm ignore image fs
 
         async {
-            do! await
+            do! Async.AwaitTask await
             let! pixelMap = ImageOutput.readPixelMap ignore tempOutput (Image.rowCount image) (Image.colCount image)
             let arr = ImageOutput.assertComplete pixelMap
             do! ImageOutput.writePpm false ignore arr outputFile

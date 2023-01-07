@@ -81,7 +81,6 @@ module InfinitePlane =
                 let sphereCentre = Ray.walkAlong (Ray.make strikePoint normal) 1.0
                 let offset = UnitVector.random rand (Point.dimension pointOnPlane)
                 let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
-
                 Point.differenceToThenFrom target strikePoint
                 |> Ray.make' strikePoint
                 |> ValueOption.get

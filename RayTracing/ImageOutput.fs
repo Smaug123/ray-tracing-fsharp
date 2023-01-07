@@ -6,6 +6,7 @@ open System.Collections.Immutable
 open System.IO
 open System.IO.Abstractions
 open System.Text
+open System.Threading.Tasks
 open SkiaSharp
 
 [<RequireQualifiedAccess>]
@@ -143,12 +144,12 @@ module ImageOutput =
         (soFar : IReadOnlyDictionary<int * int, Pixel>)
         (image : Image)
         (fs : IFileSystem)
-        : IFileInfo * Async<unit>
+        : IFileInfo * Task<unit>
         =
         let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
 
         tempFile,
-        async {
+        task {
             use outputStream = tempFile.OpenWrite ()
             use enumerator = image.Rows.GetEnumerator ()
             let mutable rowNum = 0
@@ -157,10 +158,10 @@ module ImageOutput =
 
                 let row = enumerator.Current
 
-                do!
+                let! _ =
                     row
                     |> Array.mapi (fun colNum pixel ->
-                        async {
+                        backgroundTask {
                             let! pixel =
                                 match soFar.TryGetValue ((rowNum, colNum)) with
                                 | false, _ -> pixel
@@ -182,12 +183,7 @@ module ImageOutput =
                             return ()
                         }
                     )
-#if DEBUG
-                    |> Async.Sequential
-#else
-                    |> Async.Parallel
-#endif
-                    |> Async.Ignore
+                    |> Task.WhenAll
 
                 rowNum <- rowNum + 1
         }
@@ -239,7 +235,7 @@ module ImageOutput =
         (progressIncrement : float<progress> -> unit)
         (image : Image)
         (fs : IFileSystem)
-        : IFileInfo * Async<unit>
+        : IFileInfo * Task<unit>
         =
         resume progressIncrement ImmutableDictionary.Empty image fs
 

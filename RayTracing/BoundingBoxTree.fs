@@ -6,7 +6,7 @@ type BoundingBoxTree =
 
 [<RequireQualifiedAccess>]
 module BoundingBoxTree =
-    let make (boxes : (Hittable * BoundingBox) array) : BoundingBoxTree ValueOption =
+    let make (boxes : (Hittable * BoundingBox) array) : BoundingBoxTree voption =
         if boxes.Length = 0 then
             ValueNone
         else

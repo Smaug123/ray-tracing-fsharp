@@ -25,7 +25,7 @@ module Vector =
 
     let difference (Vector (a, b, c)) (Vector (x, y, z)) : Vector = Vector (a - x, b - y, c - z)
 
-    let unitise (vec : Vector) : UnitVector ValueOption =
+    let unitise (vec : Vector) : UnitVector voption =
         let dot = dot vec vec
 
         if Float.equal dot 0.0 then

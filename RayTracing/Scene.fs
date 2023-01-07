@@ -59,7 +59,7 @@ module Scene =
             else
                 struct (bestFloat, bestObject, bestLength)
 
-    let hitObject (s : Scene) (ray : Ray) : struct (Hittable * Point) ValueOption =
+    let hitObject (s : Scene) (ray : Ray) : struct (Hittable * Point) voption =
         let mutable best = Unchecked.defaultof<_>
         let mutable bestLength = nan
         let mutable bestFloat = infinity

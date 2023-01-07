@@ -23,7 +23,7 @@ module Ray =
 
         true
 
-    let make' (origin : Point) (vector : Vector) : Ray ValueOption =
+    let make' (origin : Point) (vector : Vector) : Ray voption =
         match Vector.unitise vector with
         | ValueNone -> ValueNone
         | ValueSome v ->

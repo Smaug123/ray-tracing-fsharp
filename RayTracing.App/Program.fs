@@ -44,7 +44,7 @@ module Program =
         AnsiConsole.WriteLine (sprintf "Temporary output being written eagerly to '%s'" tempOutput.FullName)
 
         async {
-            do! await
+            do! Async.AwaitTask await
 
             let! pixelMap =
                 ImageOutput.readPixelMap readTask.Increment tempOutput (Image.rowCount image) (Image.colCount image)

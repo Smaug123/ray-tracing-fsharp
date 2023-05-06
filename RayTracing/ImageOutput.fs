@@ -158,32 +158,27 @@ module ImageOutput =
 
                 let row = enumerator.Current
 
-                let! _ =
-                    row
-                    |> Array.mapi (fun colNum pixel ->
-                        backgroundTask {
-                            let! pixel =
-                                match soFar.TryGetValue ((rowNum, colNum)) with
-                                | false, _ -> pixel
-                                | true, v -> async { return v }
+                row
+                |> Array.iteri (fun colNum pixel ->
+                    let pixel =
+                        match soFar.TryGetValue ((rowNum, colNum)) with
+                        | false, _ -> pixel
+                        | true, v -> v
 
-                            lock
-                                outputStream
-                                (fun () ->
-                                    writeAsciiInt outputStream rowNum
-                                    outputStream.WriteByte 44uy // ','
-                                    writeAsciiInt outputStream colNum
-                                    outputStream.WriteByte 10uy // '\n'
-                                    outputStream.WriteByte pixel.Red
-                                    outputStream.WriteByte pixel.Green
-                                    outputStream.WriteByte pixel.Blue
-                                )
+                    lock
+                        outputStream
+                        (fun () ->
+                            writeAsciiInt outputStream rowNum
+                            outputStream.WriteByte 44uy // ','
+                            writeAsciiInt outputStream colNum
+                            outputStream.WriteByte 10uy // '\n'
+                            outputStream.WriteByte pixel.Red
+                            outputStream.WriteByte pixel.Green
+                            outputStream.WriteByte pixel.Blue
+                        )
 
-                            incrementProgress 1.0<progress>
-                            return ()
-                        }
-                    )
-                    |> Task.WhenAll
+                    incrementProgress 1.0<progress>
+                )
 
                 rowNum <- rowNum + 1
         }

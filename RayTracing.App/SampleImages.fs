@@ -43,10 +43,10 @@ module SampleImages =
             }
 
         let image =
-            Array.init
+            Seq.init
                 256
                 (fun height ->
-                    let output = Array.init 256 (fun i -> async { return pixelAt height i })
+                    let output = Array.init 256 (pixelAt height)
                     progressIncrement 1.0<progress>
                     output
                 )

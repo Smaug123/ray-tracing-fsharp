@@ -17,21 +17,18 @@ module TestRayTracing =
         let image =
             [|
                 [|
-                    async { return Colour.Red }
-                    async { return Colour.Green }
-                    async { return Colour.Blue }
+                    Colour.Red
+                    Colour.Green
+                    Colour.Blue
                 |]
                 [|
-                    async {
-                        return
-                            {
-                                Red = 255uy
-                                Blue = 0uy
-                                Green = 255uy
-                            }
+                    {
+                        Red = 255uy
+                        Blue = 0uy
+                        Green = 255uy
                     }
-                    async { return Colour.White }
-                    async { return Colour.Black }
+                    Colour.White
+                    Colour.Black
                 |]
             |]
             |> Image.make 2 3

@@ -148,46 +148,28 @@ module ImageOutput =
         =
         let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
 
-        tempFile,
-        task {
-            use outputStream = tempFile.OpenWrite ()
-            use enumerator = image.Rows.GetEnumerator ()
-            let mutable rowNum = 0
+        let task =
+            async {
+                use outputStream = tempFile.OpenWrite ()
+                let! pixels = image.Rows |> Async.Parallel
 
-            while enumerator.MoveNext () do
-
-                let row = enumerator.Current
-
-                let! _ =
+                pixels
+                |> Array.iteri (fun rowNum row ->
                     row
-                    |> Array.mapi (fun colNum pixel ->
-                        backgroundTask {
-                            let! pixel =
-                                match soFar.TryGetValue ((rowNum, colNum)) with
-                                | false, _ -> pixel
-                                | true, v -> async { return v }
-
-                            lock
-                                outputStream
-                                (fun () ->
-                                    writeAsciiInt outputStream rowNum
-                                    outputStream.WriteByte 44uy // ','
-                                    writeAsciiInt outputStream colNum
-                                    outputStream.WriteByte 10uy // '\n'
-                                    outputStream.WriteByte pixel.Red
-                                    outputStream.WriteByte pixel.Green
-                                    outputStream.WriteByte pixel.Blue
-                                )
-
-                            incrementProgress 1.0<progress>
-                            return ()
-                        }
+                    |> Array.iteri (fun colNum pixel ->
+                        writeAsciiInt outputStream rowNum
+                        outputStream.WriteByte 44uy // ','
+                        writeAsciiInt outputStream colNum
+                        outputStream.WriteByte 10uy // '\n'
+                        outputStream.WriteByte pixel.Red
+                        outputStream.WriteByte pixel.Green
+                        outputStream.WriteByte pixel.Blue
+                        incrementProgress 1.0<progress>
                     )
-                    |> Task.WhenAll
+                )
+            }
 
-                rowNum <- rowNum + 1
-        }
-
+        tempFile, Async.StartAsTask task
 
     let writePpm
         (gammaCorrect : bool)

@@ -218,14 +218,17 @@ module Scene =
                     (fun row ->
                         let row = maxHeightCoord - row - 1
 
-                        Array.init
-                            colsIter
-                            (fun col ->
-                                let col = col - maxWidthCoord
+                        async {
+                            return
+                                Array.init
+                                    colsIter
+                                    (fun col ->
+                                        let col = col - maxWidthCoord
 
-                                let ret = renderPixel print s rand camera maxWidthCoord maxHeightCoord row col
-                                progressIncrement 1.0<progress>
-                                ret
-                            )
+                                        let ret = renderPixel print s rand camera maxWidthCoord maxHeightCoord row col
+                                        progressIncrement 1.0<progress>
+                                        ret
+                                    )
+                        }
                     )
         }

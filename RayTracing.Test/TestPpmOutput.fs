@@ -31,6 +31,7 @@ module TestRayTracing =
                     Colour.Black
                 |]
             |]
+            |> Array.map async.Return
             |> Image.make 2 3
 
         let outputFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName

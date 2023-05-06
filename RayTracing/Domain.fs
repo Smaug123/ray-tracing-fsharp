@@ -1,5 +1,6 @@
 namespace RayTracing
 
+open System.Threading.Tasks
 open RayTracing
 
 [<Measure>]
@@ -8,7 +9,7 @@ type progress
 type Image =
     private
         {
-            Rows : Pixel [] seq
+            Rows : Async<Pixel []> seq
             RowCount : int
             ColCount : int
         }
@@ -19,11 +20,12 @@ module Image =
 
     let colCount i = i.ColCount
 
-    let render (i : Image) : Pixel [] [] =
+    let render (i : Image) : Pixel [] [] Task =
         i.Rows
-        |> Seq.toArray
+        |> Async.Parallel
+        |> Async.StartAsTask
 
-    let make (rowCount : int) (colCount : int) (pixels : Pixel[] seq) : Image =
+    let make (rowCount : int) (colCount : int) (pixels : Async<Pixel[]> seq) : Image =
         {
             RowCount = rowCount
             ColCount = colCount

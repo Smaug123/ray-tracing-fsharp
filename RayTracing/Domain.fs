@@ -9,7 +9,7 @@ type progress
 type Image =
     private
         {
-            Rows : Async<Pixel []> seq
+            Rows : Async<Pixel[]> seq
             RowCount : int
             ColCount : int
         }
@@ -20,10 +20,8 @@ module Image =
 
     let colCount i = i.ColCount
 
-    let render (i : Image) : Pixel [] [] Task =
-        i.Rows
-        |> Async.Parallel
-        |> Async.StartAsTask
+    let render (i : Image) : Pixel[][] Task =
+        i.Rows |> Async.Parallel |> Async.StartAsTask
 
     let make (rowCount : int) (colCount : int) (pixels : Async<Pixel[]> seq) : Image =
         {

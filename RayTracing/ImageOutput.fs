@@ -151,9 +151,7 @@ module ImageOutput =
         let task =
             async {
                 use outputStream = tempFile.OpenWrite ()
-                let! pixels =
-                    image.Rows
-                    |> Async.Parallel
+                let! pixels = image.Rows |> Async.Parallel
 
                 pixels
                 |> Array.iteri (fun rowNum row ->

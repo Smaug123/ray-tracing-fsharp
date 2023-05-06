@@ -16,11 +16,7 @@ module TestRayTracing =
 
         let image =
             [|
-                [|
-                    Colour.Red
-                    Colour.Green
-                    Colour.Blue
-                |]
+                [| Colour.Red ; Colour.Green ; Colour.Blue |]
                 [|
                     {
                         Red = 255uy

@@ -30,7 +30,7 @@ module InfinitePlane =
 
             let s =
                 tangentComponent
-                |> Ray.walkAlong (Ray.make (Ray.walkAlong (Ray.make plane.Point plane.V1) normalComponent) plane.V2)
+                |> Ray.walkAlongRay (Ray.walkAlongRay plane.Point plane.V1 normalComponent) plane.V2
 
             Point.differenceToThenFrom s strikePoint
             |> Ray.make' strikePoint
@@ -63,7 +63,7 @@ module InfinitePlane =
             while obj.ReferenceEquals (outgoing, null) do
                 let offset = UnitVector.random rand (Point.dimension pointOnPlane)
                 let sphereCentre = Ray.walkAlong pureOutgoing 1.0
-                let target = Ray.walkAlong (Ray.make sphereCentre offset) (fuzz / 1.0<fuzz>)
+                let target = Ray.walkAlongRay sphereCentre offset (fuzz / 1.0<fuzz>)
                 let output = Point.differenceToThenFrom target strikePoint |> Ray.make' strikePoint
 
                 match output with
@@ -77,9 +77,9 @@ module InfinitePlane =
 
         | InfinitePlaneStyle.LambertReflection (albedo, colour, rand) ->
             let outgoing =
-                let sphereCentre = Ray.walkAlong (Ray.make strikePoint normal) 1.0
+                let sphereCentre = Ray.walkAlongRay strikePoint normal 1.0
                 let offset = UnitVector.random rand (Point.dimension pointOnPlane)
-                let target = Ray.walkAlong (Ray.make sphereCentre offset) 1.0
+                let target = Ray.walkAlongRay sphereCentre offset 1.0
 
                 Point.differenceToThenFrom target strikePoint
                 |> Ray.make' strikePoint

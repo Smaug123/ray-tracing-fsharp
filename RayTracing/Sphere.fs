@@ -136,7 +136,7 @@ module Sphere =
         let outgoingCos = sqrt (1.0 - outgoingSin * outgoingSin)
 
         let outgoingPoint =
-            Ray.walkAlong (Ray.make (Ray.walkAlong normal (-outgoingCos)) plane.V2) outgoingSin
+            Ray.walkAlongRay (Ray.walkAlong normal (-outgoingCos)) plane.V2 outgoingSin
 
         let outgoingLine = Point.differenceToThenFrom outgoingPoint strikePoint
 

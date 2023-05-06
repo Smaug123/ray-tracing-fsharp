@@ -15,13 +15,14 @@ type InfinitePlaneStyle =
 [<RequireQualifiedAccess>]
 module InfinitePlane =
 
-    let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : Ray) : Ray =
-        let plane = Plane.makeOrthonormalSpannedBy (Ray.make strikePoint normal) incomingRay
+    let pureOutgoing (strikePoint : Point) (normal : UnitVector) (incomingRay : byref<Ray>) : unit =
+        let plane = Plane.makeOrthonormalSpannedBy' strikePoint normal incomingRay
 
         match plane with
         | ValueNone ->
             // Incoming ray is directly along the normal
-            Ray.flip incomingRay |> Ray.parallelTo strikePoint
+            Ray.flipInPlace incomingRay
+            Ray.translateToIntersect strikePoint incomingRay
         | ValueSome plane ->
             // Incoming ray is (plane1.ray) plane1 + (plane2.ray) plane2
             // We want the reflection in the normal, so need (plane1.ray) plane1 - (plane2.ray) plane2
@@ -29,13 +30,19 @@ module InfinitePlane =
             let tangentComponent = (UnitVector.dot plane.V2 (Ray.vector incomingRay))
 
             let s =
+                // (plane.Point + plane.V1 * normalComponent) + plane.V2 * tangentComponent
                 tangentComponent
                 |> Ray.walkAlongRay (Ray.walkAlongRay plane.Point plane.V1 normalComponent) plane.V2
 
-            Point.differenceToThenFrom s strikePoint
-            |> Ray.make' strikePoint
-            // This is definitely safe. It's actually a logic error if this fails.
-            |> ValueOption.get
+
+            let newVector =
+                Point.differenceToThenFrom s strikePoint
+                |> Vector.unitise
+                // This is definitely safe. It's actually a logic error if this fails.
+                |> ValueOption.get
+
+            incomingRay.Origin <- strikePoint
+            incomingRay.Vector <- newVector
 
     let newColour (incomingColour : Pixel) albedo colour =
         Pixel.combine incomingColour colour |> Pixel.darken albedo
@@ -57,21 +64,24 @@ module InfinitePlane =
 
         | InfinitePlaneStyle.FuzzedReflection (albedo, colour, fuzz, rand) ->
             let newColour = newColour incomingRay.Colour albedo colour
-            let pureOutgoing = pureOutgoing strikePoint normal incomingRay.Ray
-            let mutable outgoing = Unchecked.defaultof<_>
+            pureOutgoing strikePoint normal &incomingRay.Ray
+            // Henceforth `incomingRay` is actually the outgoing ray: we mutated it above.
+            let mutable isDone = false
 
-            while obj.ReferenceEquals (outgoing, null) do
+            while not isDone do
                 let offset = UnitVector.random rand (Point.dimension pointOnPlane)
-                let sphereCentre = Ray.walkAlong pureOutgoing 1.0
+                let sphereCentre = Ray.walkAlong incomingRay.Ray 1.0
                 let target = Ray.walkAlongRay sphereCentre offset (fuzz / 1.0<fuzz>)
-                let output = Point.differenceToThenFrom target strikePoint |> Ray.make' strikePoint
+                let outgoing = Point.differenceToThenFrom target strikePoint
 
-                match output with
+                match Vector.unitise outgoing with
                 | ValueNone -> ()
-                | ValueSome output -> outgoing <- output
+                | ValueSome output ->
+                    incomingRay.Ray.Vector <- output
+                    Ray.translateToIntersect strikePoint incomingRay.Ray
+                    isDone <- true
 
             incomingRay.Colour <- newColour
-            incomingRay.Ray <- outgoing
 
             ValueNone
 
@@ -93,8 +103,9 @@ module InfinitePlane =
             ValueNone
 
         | InfinitePlaneStyle.PureReflection (albedo, colour) ->
-            incomingRay.Colour <- newColour incomingRay.Colour albedo colour
-            incomingRay.Ray <- pureOutgoing strikePoint normal incomingRay.Ray
+            let newColour = newColour incomingRay.Colour albedo colour
+            incomingRay.Colour <- newColour
+            pureOutgoing strikePoint normal &incomingRay.Ray
 
             ValueNone
 

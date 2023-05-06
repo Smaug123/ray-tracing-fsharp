@@ -44,8 +44,7 @@ module Program =
         async {
             do! Async.AwaitTask await
 
-            let! pixelMap =
-                ImageOutput.readPixelMap tempOutput (Image.rowCount image) (Image.colCount image)
+            let! pixelMap = ImageOutput.readPixelMap tempOutput (Image.rowCount image) (Image.colCount image)
 
             let pixelMap = ImageOutput.assertComplete pixelMap
             do! Png.write true writeTask.Increment pixelMap pngOutput

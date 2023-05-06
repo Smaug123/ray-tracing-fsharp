@@ -228,6 +228,7 @@ module Scene =
                                         let ret = renderPixel print s rand camera maxWidthCoord maxHeightCoord row col
                                         ret
                                     )
+
                             progressIncrement 1.0<progress>
                             return result
                         }

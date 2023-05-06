@@ -65,12 +65,7 @@ module ImageOutput =
 
         toRet
 
-    let readPixelMap
-        (progress : IFileInfo)
-        (numRows : int)
-        (numCols : int)
-        : Async<Pixel ValueOption[][]>
-        =
+    let readPixelMap (progress : IFileInfo) (numRows : int) (numCols : int) : Async<Pixel ValueOption[][]> =
         let rec go (dict : _[][]) (reader : Stream) =
             let row = consumeAsciiInteger reader
 
@@ -158,6 +153,7 @@ module ImageOutput =
                         outputStream.WriteByte pixel.Green
                         outputStream.WriteByte pixel.Blue
                     )
+
                     incrementProgress 1.0<progress>
                 )
             }

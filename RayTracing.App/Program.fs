@@ -15,7 +15,6 @@ module Program =
     let go (sample : SampleImages) (pngOutput : IFileInfo) (ctx : ProgressContext) =
         let renderTask = ctx.AddTask "[green]Generating image[/]"
         let writeUnorderedTask = ctx.AddTask "[green]Writing unordered pixels[/]"
-        let readTask = ctx.AddTask "[green]Reading in serialised pixels[/]"
         let writeTask = ctx.AddTask "[green]Writing PPM file[/]"
 
         let logFile =
@@ -35,7 +34,6 @@ module Program =
         let maxProgress, image = SampleImages.get sample renderTask.Increment write
         renderTask.MaxValue <- maxProgress / 1.0<progress>
         writeUnorderedTask.MaxValue <- maxProgress / 1.0<progress>
-        readTask.MaxValue <- maxProgress / 1.0<progress>
         writeTask.MaxValue <- maxProgress / 1.0<progress>
 
         let tempOutput, await =
@@ -47,7 +45,7 @@ module Program =
             do! Async.AwaitTask await
 
             let! pixelMap =
-                ImageOutput.readPixelMap readTask.Increment tempOutput (Image.rowCount image) (Image.colCount image)
+                ImageOutput.readPixelMap tempOutput (Image.rowCount image) (Image.colCount image)
 
             let pixelMap = ImageOutput.assertComplete pixelMap
             do! Png.write true writeTask.Increment pixelMap pngOutput

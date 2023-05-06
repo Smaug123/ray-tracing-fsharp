@@ -208,7 +208,7 @@ module Scene =
         let rowsIter = 2 * maxHeightCoord + 1
         let colsIter = 2 * maxWidthCoord + 1
 
-        1.0<progress> * float (rowsIter * colsIter),
+        1.0<progress> * float rowsIter,
         {
             RowCount = rowsIter
             ColCount = colsIter
@@ -219,16 +219,17 @@ module Scene =
                         let row = maxHeightCoord - row - 1
 
                         async {
-                            return
+                            let result =
                                 Array.init
                                     colsIter
                                     (fun col ->
                                         let col = col - maxWidthCoord
 
                                         let ret = renderPixel print s rand camera maxWidthCoord maxHeightCoord row col
-                                        progressIncrement 1.0<progress>
                                         ret
                                     )
+                            progressIncrement 1.0<progress>
+                            return result
                         }
                     )
         }

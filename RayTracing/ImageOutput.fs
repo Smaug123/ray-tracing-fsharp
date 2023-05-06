@@ -1,11 +1,8 @@
 ﻿namespace RayTracing
 
 open System
-open System.Collections.Generic
-open System.Collections.Immutable
 open System.IO
 open System.IO.Abstractions
-open System.Text
 open System.Threading.Tasks
 open SkiaSharp
 
@@ -69,7 +66,6 @@ module ImageOutput =
         toRet
 
     let readPixelMap
-        (incrementProgress : float<progress> -> unit)
         (progress : IFileInfo)
         (numRows : int)
         (numCols : int)
@@ -103,8 +99,6 @@ module ImageOutput =
                     if b = -1 then
                         dict
                     else
-
-                        incrementProgress 1.0<progress>
 
                         dict.[row].[col] <-
                             ValueSome
@@ -141,7 +135,6 @@ module ImageOutput =
 
     let resume
         (incrementProgress : float<progress> -> unit)
-        (soFar : IReadOnlyDictionary<int * int, Pixel>)
         (image : Image)
         (fs : IFileSystem)
         : IFileInfo * Task<unit>
@@ -164,8 +157,8 @@ module ImageOutput =
                         outputStream.WriteByte pixel.Red
                         outputStream.WriteByte pixel.Green
                         outputStream.WriteByte pixel.Blue
-                        incrementProgress 1.0<progress>
                     )
+                    incrementProgress 1.0<progress>
                 )
             }
 
@@ -219,7 +212,7 @@ module ImageOutput =
         (fs : IFileSystem)
         : IFileInfo * Task<unit>
         =
-        resume progressIncrement ImmutableDictionary.Empty image fs
+        resume progressIncrement image fs
 
 [<RequireQualifiedAccess>]
 module Png =
@@ -246,10 +239,10 @@ module Png =
                 let colour = PixelOutput.toSkia gammaCorrect pixels.[row].[pixels.[row].Length - 1]
 
                 img.SetPixel (pixels.[row].Length - 1, row, colour)
-                incrementProgress 1.0<progress>
 
             for row = 0 to pixels.Length - 2 do
                 writeRow row
+                incrementProgress 1.0<progress>
 
             writeRow (pixels.Length - 1)
 

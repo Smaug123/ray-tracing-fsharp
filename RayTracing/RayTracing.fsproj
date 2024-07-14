@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
       <TargetFramework>net7.0</TargetFramework>
@@ -27,7 +27,7 @@
 
     <ItemGroup>
       <PackageReference Include="System.IO.Abstractions" Version="13.2.28" />
-      <PackageReference Include="SkiaSharp" Version="2.88.3" />
+      <PackageReference Include="SkiaSharp" Version="2.88.8" />
     </ItemGroup>
 
 </Project>

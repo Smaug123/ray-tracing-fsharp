@@ -4,6 +4,7 @@ open System
 open RayTracing
 open NUnit.Framework
 open FsCheck
+open FsCheck.FSharp
 open FsUnitTyped
 
 [<TestFixture>]
@@ -23,9 +24,21 @@ module TestSphere =
         let gen : Gen<Point * float * Point> =
             gen {
                 let! centre = TestUtils.pointGen
-                let! radius = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
-                let! theta = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
-                let! phi = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
+
+                let! radius =
+                    ArbMap.defaults
+                    |> ArbMap.generate<NormalFloat>
+                    |> Gen.map NormalFloat.op_Explicit
+
+                let! theta =
+                    ArbMap.defaults
+                    |> ArbMap.generate<NormalFloat>
+                    |> Gen.map NormalFloat.op_Explicit
+
+                let! phi =
+                    ArbMap.defaults
+                    |> ArbMap.generate<NormalFloat>
+                    |> Gen.map NormalFloat.op_Explicit
 
                 let surfacePoint =
                     Point.make (radius * cos phi * sin theta) (radius * sin phi * sin theta) (radius * cos theta)
@@ -161,16 +174,17 @@ module TestSphere =
             result
 
         let boundedFloat upperBound =
-            Arb.generate<NormalFloat>
+            ArbMap.defaults
+            |> ArbMap.generate<NormalFloat>
             |> Gen.map (fun i -> abs i.Get)
             |> Gen.filter (fun i -> i <= upperBound)
 
         let arb =
             gen {
-                let! oX = Arb.generate<NormalFloat>
-                let! oY = Arb.generate<NormalFloat>
-                let! oZ = Arb.generate<NormalFloat>
-                let! radius = Arb.generate<NormalFloat>
+                let! oX = ArbMap.defaults |> ArbMap.generate<NormalFloat>
+                let! oY = ArbMap.defaults |> ArbMap.generate<NormalFloat>
+                let! oZ = ArbMap.defaults |> ArbMap.generate<NormalFloat>
+                let! radius = ArbMap.defaults |> ArbMap.generate<NormalFloat>
                 let! theta = boundedFloat 1.0
                 let! phi = boundedFloat 1.0
                 return ((oX, oY, oZ), radius), theta, phi

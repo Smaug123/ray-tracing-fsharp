@@ -3,6 +3,7 @@ namespace RayTracing.Test
 open RayTracing
 open NUnit.Framework
 open FsCheck
+open FsCheck.FSharp
 
 [<TestFixture>]
 module TestRay =
@@ -32,7 +33,10 @@ module TestRay =
 
             Vector.equal actual expected
 
-        let gen : Gen<float> = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
+        let gen : Gen<float> =
+            ArbMap.defaults
+            |> ArbMap.generate<NormalFloat>
+            |> Gen.map NormalFloat.op_Explicit
 
         let gen = Gen.zip (Gen.zip (Gen.two (Gen.three gen)) TestUtils.unitVectorGen) gen
 
@@ -49,7 +53,13 @@ module TestRay =
 
         property
         |> Prop.forAll (
-            Arb.fromGen (Gen.zip TestUtils.rayGen (Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit))
+            Arb.fromGen (
+                Gen.zip
+                    TestUtils.rayGen
+                    (ArbMap.defaults
+                     |> ArbMap.generate<NormalFloat>
+                     |> Gen.map NormalFloat.op_Explicit)
+            )
         )
         |> Check.QuickThrowOnFailure
 
@@ -61,6 +71,12 @@ module TestRay =
 
         property
         |> Prop.forAll (
-            Arb.fromGen (Gen.zip TestUtils.rayGen (Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit))
+            Arb.fromGen (
+                Gen.zip
+                    TestUtils.rayGen
+                    (ArbMap.defaults
+                     |> ArbMap.generate<NormalFloat>
+                     |> Gen.map NormalFloat.op_Explicit)
+            )
         )
         |> Check.QuickThrowOnFailure

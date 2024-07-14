@@ -4,13 +4,12 @@ open RayTracing
 open System.IO
 open System.Reflection
 open FsCheck
+open FsCheck.FSharp
 
 [<RequireQualifiedAccess>]
 module TestUtils =
 
-    type Dummy =
-        class
-        end
+    type Dummy = class end
 
     let getEmbeddedResource (filename : string) : string =
         let filename =
@@ -23,14 +22,17 @@ module TestUtils =
         use reader = new StreamReader (stream)
         reader.ReadToEnd().Replace ("\r\n", "\n")
 
-    let floatGen = Arb.generate<NormalFloat> |> Gen.map NormalFloat.op_Explicit
+    let floatGen =
+        ArbMap.defaults
+        |> ArbMap.generate<NormalFloat>
+        |> Gen.map NormalFloat.op_Explicit
 
     let pointGen =
-        Gen.three Arb.generate<NormalFloat>
+        Gen.three (ArbMap.defaults |> ArbMap.generate<NormalFloat>)
         |> Gen.map (fun (i, j, k) -> Point.make i.Get j.Get k.Get)
 
     let vectorGen =
-        Gen.three Arb.generate<NormalFloat>
+        Gen.three (ArbMap.defaults |> ArbMap.generate<NormalFloat>)
         |> Gen.map (fun (i, j, k) -> Vector.make i.Get j.Get k.Get)
 
     let unitVectorGen =

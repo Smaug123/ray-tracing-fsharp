@@ -2,6 +2,7 @@ namespace RayTracing.Test
 
 open NUnit.Framework
 open FsCheck
+open FsCheck.FSharp
 open FsUnitTyped
 open RayTracing
 
@@ -12,7 +13,7 @@ module TestSphereIntersection =
     let sphere : Gen<Sphere> =
         gen {
             let! origin = TestUtils.pointGen
-            let! radius = Arb.generate<NormalFloat>
+            let! radius = ArbMap.defaults |> ArbMap.generate<NormalFloat>
             return Sphere.make (SphereStyle.LightSource (Texture.Colour Colour.White)) origin radius.Get
         }
 

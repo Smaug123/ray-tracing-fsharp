@@ -2,6 +2,7 @@ namespace RayTracing.Test
 
 open NUnit.Framework
 open FsCheck
+open FsCheck.FSharp
 open RayTracing
 
 [<TestFixture>]

@@ -19,7 +19,7 @@ module Program =
 
         let logFile =
             pngOutput.FileSystem.Path.GetTempFileName ()
-            |> pngOutput.FileSystem.FileInfo.FromFileName
+            |> pngOutput.FileSystem.FileInfo.New
 
         use stream = logFile.OpenWrite ()
         use writer = new StreamWriter (stream)
@@ -64,8 +64,8 @@ module Program =
             | [| name |] ->
                 SampleImages.Parse name,
                 fs.Path.GetTempFileName ()
-                |> fun i -> fs.Path.ChangeExtension (i, ".png") |> fs.FileInfo.FromFileName
-            | [| name ; output |] -> SampleImages.Parse name, fs.FileInfo.FromFileName output
+                |> fun i -> fs.Path.ChangeExtension (i, ".png") |> fs.FileInfo.New
+            | [| name ; output |] -> SampleImages.Parse name, fs.FileInfo.New output
             | _ -> failwithf "Expected two args 'sample name' 'output file', got %+A" argv
 
         let progress =

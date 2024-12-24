@@ -1,4 +1,4 @@
-﻿namespace RayTracing
+namespace RayTracing
 
 open System
 open System.IO
@@ -134,7 +134,7 @@ module ImageOutput =
         (fs : IFileSystem)
         : IFileInfo * Task<unit>
         =
-        let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.FromFileName
+        let tempFile = fs.Path.GetTempFileName () |> fs.FileInfo.New
 
         let task =
             async {
